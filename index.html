@@ -71,26 +71,27 @@
             filter: blur(0px);
             text-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
-        /* 歌詞ビューの背景ぼかし（フルプレイヤーの背景を透かせるため） */
+        /* 歌詞ビューの背景ぼかし */
         #lyrics-view {
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(40px);
             -webkit-backdrop-filter: blur(40px);
         }
         /* ドラッグ時の点滅・残像対策 */
-        .sortable-ghost {
-            opacity: 0 !important; /* 元あった場所の残像を完全に透明にする */
-        }
-        .sortable-drag {
-            opacity: 1 !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.7) !important; /* 指に追従する要素に影をつけて浮かせる */
-            background-color: rgba(20, 20, 20, 0.95) !important; /* 背景が透けないように少し濃くする */
-        }
+        .sortable-ghost { opacity: 0 !important; }
+        .sortable-drag { opacity: 1 !important; box-shadow: 0 10px 25px rgba(0,0,0,0.7) !important; background-color: rgba(20, 20, 20, 0.95) !important; }
+        
+        /* シミュレーション用ベース表現 */
+        .base-diamond { transform: rotate(45deg); width: 20px; height: 20px; border: 2px solid white; transition: all 0.3s; }
+        .base-active { background-color: #ef4444; border-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+        .bso-circle { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #555; }
+        .b-active { background-color: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+        .s-active { background-color: #eab308; border-color: #eab308; box-shadow: 0 0 8px #eab308; }
+        .o-active { background-color: #ef4444; border-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
     </style>
 </head>
 <body class="flex flex-col">
 
-    <!-- 共通のダイナミックな背景（フルプレイヤー＆歌詞用） -->
     <div id="bg-blur" class="fixed inset-0 z-[-1] opacity-40 blur-[80px] scale-150 transition-all duration-1000"></div>
 
     <!-- ライブラリ画面 -->
@@ -98,14 +99,18 @@
         <h1 class="text-3xl font-bold mb-2">Jmusic</h1>
         <p class="text-xs text-white/50 mb-6">常総学院高等学校応援団 応援プレイヤー</p>
         
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <div onclick="openView('view-playlists')" class="glass p-4 rounded-2xl flex flex-col gap-2 active:scale-95 transition-transform cursor-pointer">
+        <div class="grid grid-cols-3 gap-3 mb-8">
+            <div onclick="openView('view-playlists')" class="glass p-3 rounded-2xl flex flex-col gap-2 active:scale-95 transition-transform cursor-pointer items-center justify-center text-center">
                 <i class="fas fa-music text-red-500 text-2xl"></i>
-                <span class="font-bold">プレイリスト</span>
+                <span class="font-bold text-xs">リスト</span>
             </div>
-            <div onclick="openView('view-favorites')" class="glass p-4 rounded-2xl flex flex-col gap-2 active:scale-95 transition-transform cursor-pointer">
+            <div onclick="openView('view-favorites')" class="glass p-3 rounded-2xl flex flex-col gap-2 active:scale-95 transition-transform cursor-pointer items-center justify-center text-center">
                 <i class="fas fa-heart text-pink-500 text-2xl"></i>
-                <span class="font-bold">お気に入り</span>
+                <span class="font-bold text-xs">お気に入り</span>
+            </div>
+            <div onclick="openSimulationView()" class="p-3 rounded-2xl flex flex-col gap-2 active:scale-95 transition-transform cursor-pointer items-center justify-center text-center border-2 border-blue-500/50 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <i class="fas fa-baseball-ball text-blue-400 text-2xl"></i>
+                <span class="font-bold text-[10px] leading-tight text-blue-200">試合シミュ<br>モード</span>
             </div>
         </div>
 
@@ -174,7 +179,101 @@
         </div>
     </div>
 
-    <!-- 中央配置モーダル群 -->
+    <!-- ⚾ AI試合シミュレーションモード画面 -->
+    <div id="view-simulation" class="fixed inset-0 z-[65] bg-[#0a1128] flex flex-col transition-transform translate-x-full duration-500 overflow-hidden">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none"></div>
+        <div class="flex items-center justify-between px-4 h-16 shrink-0 bg-black/50 backdrop-blur-md sticky top-0 z-10 border-b border-white/10">
+            <button onclick="closeSimulationView()" class="text-red-400 font-semibold flex items-center gap-1 w-20"><i class="fas fa-chevron-left"></i> 閉じる</button>
+            <h2 class="font-bold text-lg text-white flex items-center gap-2"><i class="fas fa-satellite-dish text-blue-400 animate-pulse"></i> 試合シミュ＆応援</h2>
+            <div class="w-20"></div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pb-32 flex flex-col relative z-10">
+            <!-- スコアボード -->
+            <div class="mx-4 mt-6 bg-[#1a233a] border border-[#2a375a] rounded-2xl p-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-center w-24">
+                        <div class="text-[10px] text-white/50 mb-1">先攻</div>
+                        <div class="font-black text-xl text-red-500">常総</div>
+                        <div id="sim-score-joso" class="text-4xl font-black font-mono mt-1">0</div>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <div id="sim-inning-text" class="text-sm font-bold text-yellow-400 bg-yellow-400/10 px-3 py-1 rounded-full mb-2">1回表</div>
+                        <div class="text-xs text-white/40">VS</div>
+                    </div>
+                    <div class="text-center w-24">
+                        <div class="text-[10px] text-white/50 mb-1">後攻</div>
+                        <div class="font-black text-xl text-white/80">ライバル</div>
+                        <div id="sim-score-opp" class="text-4xl font-black font-mono mt-1">0</div>
+                    </div>
+                </div>
+
+                <!-- 状況表示 (ランナー & BSO) -->
+                <div class="bg-black/40 rounded-xl p-3 flex justify-between items-center">
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-blue-400 w-3">B</span>
+                            <div class="flex gap-1" id="sim-balls-container"></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-yellow-400 w-3">S</span>
+                            <div class="flex gap-1" id="sim-strikes-container"></div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-red-500 w-3">O</span>
+                            <div class="flex gap-1" id="sim-outs-container"></div>
+                        </div>
+                    </div>
+                    <div class="relative w-24 h-24">
+                        <div id="sim-base-2" class="base-diamond absolute top-0 left-1/2 -translate-x-1/2"></div>
+                        <div id="sim-base-3" class="base-diamond absolute top-1/2 left-2 -translate-y-1/2"></div>
+                        <div id="sim-base-1" class="base-diamond absolute top-1/2 right-2 -translate-y-1/2"></div>
+                        <div class="base-diamond absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/20 border-white/20"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 現在の曲と再生コントロール -->
+            <div class="mx-4 mt-4 bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-4 shadow-lg">
+                <button onclick="handlePlayPause()" class="w-12 h-12 flex items-center justify-center bg-red-600 hover:bg-red-500 rounded-full text-white active:scale-90 transition-transform shadow-[0_0_10px_rgba(220,38,38,0.5)] shrink-0">
+                    <i id="sim-play-btn" class="fas fa-play text-lg"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[10px] text-white/50 flex justify-between">
+                        <span>現在選択中の応援曲</span>
+                        <span id="sim-badge-reserved" class="text-red-400 font-bold hidden">睡蓮花 待機中</span>
+                    </div>
+                    <div id="sim-current-track" class="text-sm font-bold truncate text-white">待機中...</div>
+                </div>
+            </div>
+
+            <!-- 実況ログエリア -->
+            <div class="px-4 mt-6 mb-2 text-xs font-bold text-white/50 uppercase tracking-widest flex items-center gap-2">
+                <i class="fas fa-list-alt"></i> 1球ごとの試合実況ログ (8秒間隔)
+            </div>
+            <div id="sim-log-container" class="flex-1 px-4 space-y-3 overflow-y-auto scroll-smooth flex flex-col-reverse">
+            </div>
+        </div>
+
+        <!-- コントロールバー -->
+        <div class="absolute bottom-0 w-full bg-gradient-to-t from-[#0a1128] via-[#0a1128] to-transparent pt-12 pb-8 px-6 flex justify-center z-20">
+            <button id="sim-toggle-btn" onclick="toggleSimulation()" class="w-full max-w-sm bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg shadow-[0_10px_30px_rgba(37,99,235,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3">
+                <i class="fas fa-play"></i> 試合シミュレーション開始
+            </button>
+        </div>
+    </div>
+
+    <!-- カスタムアラートモーダル -->
+    <div id="modal-alert" class="fixed inset-0 z-[110] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-alert')"></div>
+        <div class="modal-content bg-zinc-800 rounded-2xl w-[85%] max-w-sm p-6 relative z-10 transform scale-95 transition-transform duration-300 flex flex-col items-center shadow-2xl border border-white/10">
+            <h3 class="font-bold text-lg mb-3 text-white">お知らせ</h3>
+            <p id="alert-message" class="text-white/80 text-sm text-center mb-6"></p>
+            <button onclick="closeModal('modal-alert')" class="w-full py-3 rounded-xl bg-red-500 text-white font-bold active:bg-red-600 transition-colors shadow-lg shadow-red-500/30">OK</button>
+        </div>
+    </div>
+
+    <!-- 他のモーダル類 -->
     <div id="modal-new-playlist" class="fixed inset-0 z-[100] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-new-playlist')"></div>
         <div class="modal-content bg-zinc-800 rounded-2xl w-[85%] max-w-sm p-6 relative z-10 transform scale-95 transition-transform duration-300 flex flex-col items-center shadow-2xl border border-white/10">
@@ -354,9 +453,7 @@
             <div class="w-10"></div>
         </div>
         
-        <!-- 歌詞表示領域 -->
         <div id="lyrics-container" class="flex-1 overflow-y-auto px-8 pb-48 pt-10 hide-scrollbar space-y-6 relative z-10 scroll-smooth">
-            <!-- JavaScriptで動的に生成 -->
         </div>
     </div>
 
@@ -379,7 +476,7 @@
     <audio id="audio-element" playsinline preload="auto"></audio>
 
     <script>
-        // 更新された22曲のトラックデータ
+        // 22曲のトラックデータ
         const tracks = [
             { id: 1, title: "校歌", artist: "常総学院高等学校応援団", img: "img/iconcheer.png", color: "#4a1c1c", src: "songs/1.mp3", interruptible: false, lrc: "lyrics/1.lrc" },
             { id: 2, title: "応援歌", artist: "常総学院高等学校応援団", img: "img/iconcheer.png", color: "#4a1c1c", src: "songs/2.mp3", interruptible: false, lrc: "lyrics/2.lrc" },
@@ -405,23 +502,33 @@
             { id: 22, title: "春風", artist: "常総学院高等学校応援団", img: "img/iconcheer.png", color: "#1a4a44", src: "songs/38.mp3", interruptible: true, lrc: "lyrics/38.lrc" }
         ];
 
-        // 再生キューの状態管理
+        // カスタムアラート
+        function customAlert(msg) {
+            document.getElementById('alert-message').innerText = msg;
+            openModal('modal-alert');
+        }
+
+        // ==========================================
+        // ⚾ AI試合シミュレーションモード (8秒に1球進行)
+        // ==========================================
+        let simActive = false;
+        let simTimer = null;
+        let simState = { inning: 1, isTop: true, balls: 0, strikes: 0, outs: 0, runners: [false, false, false], scoreJoso: 0, scoreOpp: 0 };
+        
+        // ==========================================
+        // プレイヤーコア・全体ステート
+        // ==========================================
         let playQueue = [];
         let currentQueueIdx = -1;
-
-        // シャッフル用変数
         let isShuffle = false;
         let originalQueue = []; 
-        
-        let currentIdx = -1; // 全体リスト用インデックス
+        let currentIdx = -1; 
         let currentTrack = null;
-
         let isLooping = false; 
         let loopStartTime = null;
         let loopFinishTime = null;
         let isMiniPlayerSwiping = false; 
         const audio = document.getElementById('audio-element');
-
         let favorites = JSON.parse(localStorage.getItem('jmusic_favorites')) || [];
         let playlists = JSON.parse(localStorage.getItem('jmusic_playlists')) || [];
         
@@ -433,27 +540,28 @@
         let pendingPlaylistTrackId = null;
         let tempNewPlaylistCover = null;
 
-        // 歌詞管理用変数
         let currentLyrics = [];
         let currentLyricIndex = -1;
 
-        // === 新仕様：自動ランダム、割り込みステート管理 ===
-        let nextReservedTrackId = null; // 次回再生ボタンが押されたとき確定するトラックID (常総節のあとは11等)
-        let interruptionType = 0; // 0:なし, 2:パターン2(ヒットマーチ id 13), 3:パターン3(常総節 id 14)
-        let interruptionTriggerTime = null; // 現在の曲内で割り込みが発生する秒数
-        let hasTriggeredInterruption = false; // 割り込みが既にトリガーされたかのフラグ
+        // 割り込みパターン用変数
+        let nextReservedTrackId = null; 
+        let interruptionType = 0; // 0:なし(パターン1), 2:hit march(パターン2), 3:hit march2(パターン3)
+        let interruptionTriggerTime = null; 
+        let hasTriggeredInterruption = false; 
 
-        // 初期起動時はすべての曲をキューにセット
         originalQueue = tracks.map(t => t.id);
         playQueue = [...originalQueue];
 
+        // ==========================================
+        // ユーティリティ・ライブラリ・プレイリスト関連
+        // ==========================================
         function saveData() {
             try {
                 localStorage.setItem('jmusic_favorites', JSON.stringify(favorites));
                 localStorage.setItem('jmusic_playlists', JSON.stringify(playlists));
             } catch (e) {
                 if (e.name === 'QuotaExceededError') {
-                    alert('保存容量の制限に達しました。古いプレイリスト画像を削除してください。');
+                    customAlert('保存容量の制限に達しました。古いプレイリスト画像を削除してください。');
                 }
             }
         }
@@ -509,6 +617,7 @@
             const preview = document.getElementById('new-playlist-cover-preview');
             preview.src = dataUrl; preview.classList.remove('hidden');
         }
+
         function updateCurrentPlaylistCover(dataUrl) {
             if (!currentEditingPlaylistId) return;
             const p = playlists.find(x => x.id === currentEditingPlaylistId);
@@ -587,7 +696,7 @@
                 saveData(); closeModal('modal-new-playlist'); renderPlaylists();
                 if (!pendingPlaylistTrackId) openPlaylistDetail(newId);
                 pendingPlaylistTrackId = null; tempNewPlaylistCover = null;
-            } else alert("プレイリスト名を入力してください");
+            } else customAlert("プレイリスト名を入力してください");
         }
         function togglePlaylistEdit() {
             isPlaylistEditing = !isPlaylistEditing; document.getElementById('btn-playlist-edit').innerText = isPlaylistEditing ? "完了" : "編集";
@@ -668,7 +777,7 @@
                 isShuffle = false;
                 const shuffleBtn = document.getElementById('btn-shuffle');
                 if (shuffleBtn) {
-                    shuffleBtn.classList.remove('text-blue-500'); 
+                    shuffleBtn.classList.remove('text-red-500'); 
                     shuffleBtn.classList.add('text-white/70');
                 }
             }
@@ -679,7 +788,6 @@
             } 
         }
 
-        // プレイリスト詳細画面のシャッフル再生ボタン
         function playPlaylistShuffled() {
             if(!currentEditingPlaylistId) return;
             const p = playlists.find(x => x.id === currentEditingPlaylistId);
@@ -689,7 +797,6 @@
             }
         }
 
-        // フルプレイヤー画面のシャッフル切り替え
         function toggleShuffle() {
             isShuffle = !isShuffle;
             updateShuffleUI();
@@ -714,7 +821,6 @@
             }
         }
 
-        // 暗号セキュアなシャッフル関数
         function shuffleArray(array) {
             let arr = [...array];
             const randomBuffer = new Uint32Array(1);
@@ -777,350 +883,365 @@
             });
         }
 
-        // ====== プレイヤーコア ======
+        // ==========================================
+        // ⚾ シミュレーションとプレイヤー機能
+        // ==========================================
 
-        // 再生コンテキスト（リスト）に基づくキューの更新と手動再生
-        function playContextTrack(trackId, contextIds, forceShuffle = false) {
-            if (!contextIds || contextIds.length === 0) return;
-            
-            // 最初の曲の手動タップにより、自動ランダム遷移モードへ。
-            // 手動選曲時は以前の予約曲キューをクリア
-            nextReservedTrackId = null; 
-            updateReservedBadge();
+        function openSimulationView() {
+            document.getElementById('view-simulation').style.transform = 'translateX(0)';
+            updateSimUI();
+        }
 
-            originalQueue = [...contextIds];
+        function closeSimulationView() {
+            document.getElementById('view-simulation').style.transform = 'translateX(100%)';
+        }
 
-            if (forceShuffle) {
-                isShuffle = true;
-                updateShuffleUI();
+        function toggleSimulation() {
+            const btn = document.getElementById('sim-toggle-btn');
+            if (simActive) {
+                simActive = false;
+                clearInterval(simTimer);
+                btn.innerHTML = `<i class="fas fa-play"></i> 試合シミュレーション再開`;
+                btn.className = "w-full max-w-sm bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-lg shadow-[0_10px_30px_rgba(37,99,235,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3";
+                addSimLog(`【中断】試合のシミュレーションを一時停止しました。`);
+            } else {
+                simActive = true;
+                btn.innerHTML = `<i class="fas fa-pause"></i> 試合シミュレーション停止`;
+                btn.className = "w-full max-w-sm bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black text-lg shadow-[0_10px_30px_rgba(220,38,38,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3";
+                
+                if(simState.inning === 1 && simState.isTop && simState.balls===0 && simState.strikes===0 && simState.outs === 0 && !simState.runners.includes(true) && simState.scoreJoso === 0 && simState.scoreOpp === 0) {
+                    addSimLog("【プレイボール】常総学院の先攻で試合開始です！");
+                } else {
+                    addSimLog("【試合再開】ピッチャー、振りかぶって…");
+                }
+                
+                updateSimUI();
+                simTimer = setInterval(processPitch, 8000); 
+            }
+        }
+
+        function processPitch() {
+            if (!simState.isTop) {
+                addSimLog(`【${simState.inning}回裏】相手校の攻撃は凡退！チェンジ。`);
+                simState.inning++;
+                simState.isTop = true;
+                simState.balls = 0; simState.strikes = 0; simState.outs = 0;
+                simState.runners = [false, false, false];
+                updateSimUI();
+                return;
             }
 
+            const r = Math.random();
+            let pitchLog = "";
+            let isHit = false, isWalk = false, isHomerun = false, isOut = false;
+            let hitBases = 0;
+
+            if (r < 0.40) {
+                simState.balls++;
+                pitchLog = "ボール！";
+                if (simState.balls >= 4) { pitchLog = "フォアボール！ランナー出塁！"; isWalk = true; }
+            } else if (r < 0.65) {
+                simState.strikes++;
+                pitchLog = "ストライク！";
+                if (simState.strikes >= 3) { pitchLog = "見逃し三振！バッターアウト！"; isOut = true; }
+            } else if (r < 0.80) {
+                pitchLog = "ファウル！";
+                if (simState.strikes < 2) simState.strikes++;
+            } else if (r < 0.88) {
+                pitchLog = "打ち上げた！フライをキャッチしてアウト！";
+                isOut = true;
+            } else if (r < 0.96) {
+                pitchLog = "快音！ヒットでランナー出塁！";
+                isHit = true; hitBases = 1;
+            } else if (r < 0.99) {
+                pitchLog = "左中間を破るツーベースヒット！";
+                isHit = true; hitBases = 2;
+            } else {
+                pitchLog = "完璧な当たり！ホームラン！！！";
+                isHomerun = true; hitBases = 4;
+            }
+
+            if (isOut) {
+                simState.outs++;
+                simState.balls = 0; simState.strikes = 0;
+                if (simState.outs >= 3) {
+                    pitchLog += " スリーアウトチェンジ！";
+                    simState.isTop = false;
+                }
+            } else if (isWalk || isHit || isHomerun) {
+                simState.balls = 0; simState.strikes = 0;
+                advanceRunners(hitBases, isWalk);
+            }
+
+            addSimLog(pitchLog);
+            updateSimUI();
+        }
+
+        function advanceRunners(bases, isWalk = false) {
+            let runs = 0;
+            if (isWalk) {
+                if(simState.runners[0]) {
+                    if(simState.runners[1]) {
+                        if(simState.runners[2]) runs++;
+                        else simState.runners[2] = true;
+                    } else simState.runners[1] = true;
+                } else simState.runners[0] = true;
+            } else {
+                let newRunners = [false, false, false];
+                for(let i=2; i>=0; i--) {
+                    if(simState.runners[i]) {
+                        if (i + bases >= 3) runs++;
+                        else newRunners[i + bases] = true;
+                    }
+                }
+                if (bases < 4) newRunners[bases-1] = true; 
+                else runs++; 
+                simState.runners = newRunners;
+            }
+
+            if (runs > 0) {
+                simState.scoreJoso += runs;
+                addSimLog(`✨ タイムリー！ ${runs}点追加！ ✨ (常総 ${simState.scoreJoso} - ${simState.scoreOpp} 相手)`);
+            }
+        }
+
+        function updateSimUI() {
+            document.getElementById('sim-score-joso').innerText = simState.scoreJoso;
+            document.getElementById('sim-score-opp').innerText = simState.scoreOpp;
+            document.getElementById('sim-inning-text').innerText = `${simState.inning}回${simState.isTop ? '表' : '裏'}`;
+            
+            const bCont = document.getElementById('sim-balls-container'); bCont.innerHTML = '';
+            for(let i=0; i<3; i++) bCont.innerHTML += `<div class="bso-circle ${i < simState.balls ? 'b-active' : ''}"></div>`;
+            
+            const sCont = document.getElementById('sim-strikes-container'); sCont.innerHTML = '';
+            for(let i=0; i<2; i++) sCont.innerHTML += `<div class="bso-circle ${i < simState.strikes ? 's-active' : ''}"></div>`;
+
+            const oCont = document.getElementById('sim-outs-container'); oCont.innerHTML = '';
+            for(let i=0; i<2; i++) oCont.innerHTML += `<div class="bso-circle ${i < simState.outs ? 'o-active' : ''}"></div>`;
+
+            document.getElementById('sim-base-1').className = `base-diamond absolute top-1/2 right-2 -translate-y-1/2 ${simState.runners[0] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+            document.getElementById('sim-base-2').className = `base-diamond absolute top-0 left-1/2 -translate-x-1/2 ${simState.runners[1] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+            document.getElementById('sim-base-3').className = `base-diamond absolute top-1/2 left-2 -translate-y-1/2 ${simState.runners[2] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+        }
+
+        function addSimLog(text) {
+            const container = document.getElementById('sim-log-container');
+            const logDiv = document.createElement('div');
+            logDiv.className = "bg-white/10 rounded-lg p-3 text-sm font-semibold text-white/90 border border-white/5 animate-[fadeIn_0.3s_ease]";
+            logDiv.innerText = text;
+            container.prepend(logDiv); 
+        }
+
+        function playContextTrack(trackId, contextIds, forceShuffle = false) {
+            if (!contextIds || contextIds.length === 0) return;
+            nextReservedTrackId = null; 
+            updateReservedBadge();
+            originalQueue = [...contextIds];
+            if (forceShuffle) { isShuffle = true; updateShuffleUI(); }
             if (isShuffle) {
                 let pool = contextIds.filter(id => id !== trackId);
                 pool = shuffleArray(pool);
                 playQueue = [trackId, ...pool];
-            } else {
-                playQueue = [...contextIds];
-            }
-            
+            } else { playQueue = [...contextIds]; }
             const qIdx = playQueue.indexOf(trackId);
             playTrackFromQueue(qIdx !== -1 ? qIdx : 0);
             toggleFullPlayer(true);
         }
 
-        // キューリストに基づいた通常再生
         function playTrackFromQueue(queueIdx) {
             if (queueIdx < 0 || queueIdx >= playQueue.length) return;
-            
             const trackId = playQueue[queueIdx];
             const track = tracks.find(t => t.id === trackId);
             if (!track) return;
-            
             if (currentQueueIdx === queueIdx && !audio.paused) return;
+            if (currentIdx !== -1) { const prev = document.getElementById(`song-item-${currentIdx}`); if (prev) prev.classList.remove('active-song-item'); }
             
-            if (currentIdx !== -1) { 
-                const prevSongItem = document.getElementById(`song-item-${currentIdx}`); 
-                if (prevSongItem) prevSongItem.classList.remove('active-song-item'); 
-            }
-
-            currentQueueIdx = queueIdx;
-            currentTrack = track;
-            currentIdx = tracks.findIndex(t => t.id === track.id);
-
+            currentQueueIdx = queueIdx; currentTrack = track; currentIdx = tracks.findIndex(t => t.id === track.id);
             audio.src = track.src;
             
-            const newSongItem = document.getElementById(`song-item-${currentIdx}`); 
-            if (newSongItem) newSongItem.classList.add('active-song-item');
-
-            updatePlayerUIElements(track);
-
-            updateFavoriteUI(track.id); 
-            resetLoopState(); 
-
-            // 割り込みパラメータの初期計算
-            setupInterruption(track);
-
-            audio.play().catch(e => console.warn(e)); 
-            updatePlayButtonIcons();
-            updateMediaSession();
-
-            const queueView = document.getElementById('queue-view');
-            if (queueView.style.transform === "translateY(0px)" || queueView.style.transform === "translateY(0)") {
-                renderQueueList();
-            }
+            const newSong = document.getElementById(`song-item-${currentIdx}`); if (newSong) newSong.classList.add('active-song-item');
+            updatePlayerUIElements(track); updateFavoriteUI(track.id); resetLoopState(); 
             
+            audio.play().catch(e => console.warn(e)); 
+            updatePlayButtonIcons(); updateMediaSession();
+            
+            const queueView = document.getElementById('queue-view');
+            if (queueView.style.transform === "translateY(0px)" || queueView.style.transform === "translateY(0)") { renderQueueList(); }
             loadLyrics(track.id, track.lrc);
         }
 
-        // 特定のトラック（割り込みや、予約曲）を直接単独で再生する
         function playTrackDirectly(trackId) {
             const track = tracks.find(t => t.id === trackId);
             if (!track) return;
-
-            if (currentIdx !== -1) { 
-                const prevSongItem = document.getElementById(`song-item-${currentIdx}`); 
-                if (prevSongItem) prevSongItem.classList.remove('active-song-item'); 
-            }
-
-            currentTrack = track;
-            currentIdx = tracks.findIndex(t => t.id === track.id);
-
+            if (currentIdx !== -1) { const prev = document.getElementById(`song-item-${currentIdx}`); if (prev) prev.classList.remove('active-song-item'); }
+            
+            currentTrack = track; currentIdx = tracks.findIndex(t => t.id === track.id);
             audio.src = track.src;
-
-            const newSongItem = document.getElementById(`song-item-${currentIdx}`); 
-            if (newSongItem) newSongItem.classList.add('active-song-item');
-
-            updatePlayerUIElements(track);
-            updateFavoriteUI(track.id); 
-            resetLoopState(); 
-
-            // 割り込み設定の初期化（割り込み曲自体には割り込まない）
-            setupInterruption(track);
-
+            
+            const newSong = document.getElementById(`song-item-${currentIdx}`); if (newSong) newSong.classList.add('active-song-item');
+            updatePlayerUIElements(track); updateFavoriteUI(track.id); resetLoopState(); 
+            
             audio.play().catch(e => console.warn(e)); 
-            updatePlayButtonIcons();
-            updateMediaSession();
-
+            updatePlayButtonIcons(); updateMediaSession();
             loadLyrics(track.id, track.lrc);
         }
 
-        // プレイヤー表示のテキスト/バッジ類を更新する共通処理
         function updatePlayerUIElements(track) {
-            document.getElementById('mini-title').innerText = track.title; 
-            document.getElementById('full-title').innerText = track.title;
-            document.getElementById('mini-artist').innerText = track.artist; 
-            document.getElementById('full-artist').innerText = track.artist;
-            document.getElementById('mini-img').src = track.img; 
-            document.getElementById('full-img').src = track.img;
-            document.getElementById('full-player-bg-img').src = track.img; 
-            document.getElementById('bg-blur').style.backgroundColor = track.color;
-            
-            document.getElementById('queue-mini-title').innerText = track.title; 
-            document.getElementById('queue-mini-artist').innerText = track.artist; 
-            document.getElementById('queue-mini-img').src = track.img;
-            
-            document.getElementById('seek-progress').style.width = '0%'; 
-            document.getElementById('seek-bar').value = 0;
+            document.getElementById('mini-title').innerText = track.title; document.getElementById('full-title').innerText = track.title;
+            document.getElementById('mini-artist').innerText = track.artist; document.getElementById('full-artist').innerText = track.artist;
+            document.getElementById('mini-img').src = track.img; document.getElementById('full-img').src = track.img;
+            document.getElementById('full-player-bg-img').src = track.img; document.getElementById('bg-blur').style.backgroundColor = track.color;
+            document.getElementById('queue-mini-title').innerText = track.title; document.getElementById('queue-mini-artist').innerText = track.artist; document.getElementById('queue-mini-img').src = track.img;
+            document.getElementById('seek-progress').style.width = '0%'; document.getElementById('seek-bar').value = 0;
 
-            // 割り込み対応バッジの表示切り替え
             const interruptBadge = document.getElementById('badge-interrupt');
             if (track.interruptible) {
-                interruptBadge.innerText = "割り込み対応";
-                interruptBadge.className = "px-2 py-0.5 rounded bg-green-500/20 text-green-400 font-bold uppercase";
+                interruptBadge.innerText = "割り込み対応"; interruptBadge.className = "px-2 py-0.5 rounded bg-green-500/20 text-green-400 font-bold uppercase";
             } else {
-                interruptBadge.innerText = "割り込み無効";
-                interruptBadge.className = "px-2 py-0.5 rounded bg-white/10 text-white/40 font-bold uppercase";
+                interruptBadge.innerText = "割り込み無効"; interruptBadge.className = "px-2 py-0.5 rounded bg-white/10 text-white/40 font-bold uppercase";
             }
-
             updateReservedBadge();
+
+            const simTrackEl = document.getElementById('sim-current-track');
+            if (simTrackEl) simTrackEl.innerText = track.title;
         }
 
-        // 睡蓮花予約中バッジのON/OFF切り替え
         function updateReservedBadge() {
             const reservedBadge = document.getElementById('badge-next-reserved');
+            const simReservedBadge = document.getElementById('sim-badge-reserved');
             if (nextReservedTrackId === 11) {
                 reservedBadge.classList.remove('hidden');
+                if(simReservedBadge) simReservedBadge.classList.remove('hidden');
             } else {
                 reservedBadge.classList.add('hidden');
+                if(simReservedBadge) simReservedBadge.classList.add('hidden');
             }
         }
 
-        // === 新仕様：割り込み抽選とタイミング設定 ===
-        function setupInterruption(track) {
-            interruptionType = 0;
-            interruptionTriggerTime = null;
-            hasTriggeredInterruption = false;
-
-            if (track.interruptible) {
-                const rand = Math.random();
-                if (rand < 0.20) {
-                    interruptionType = 0; // パターン1: 割り込みなし (20%)
-                } else if (rand < 0.80) {
-                    interruptionType = 2; // パターン2: ヒットマーチへ (60%)
-                } else {
-                    interruptionType = 3; // パターン3: 常総節へ (20%)
-                }
-            }
-        }
-
-        // メタデータ読み込み完了時に、割り込み秒数を決定する
-        audio.onloadedmetadata = () => { 
-            updatePositionState(); 
-            if (currentTrack && currentTrack.interruptible && interruptionType !== 0) {
-                // 曲の長さの20%〜80%の間で発生するように制限
-                const minSec = audio.duration * 0.2;
-                const maxSec = audio.duration * 0.8;
-                interruptionTriggerTime = Math.random() * (maxSec - minSec) + minSec;
-                console.log(`[遷移予約完了] 曲名: ${currentTrack.title}, 予定タイプ: ${interruptionType}, 発動秒数: ${interruptionTriggerTime.toFixed(1)}秒 / ${audio.duration.toFixed(1)}秒`);
-            }
-        };
-
-        // 割り込みの実行
-        function triggerInterruption() {
-            hasTriggeredInterruption = true;
-            const targetType = interruptionType;
-            interruptionType = 0; // 重複発動の防止
-
-            if (targetType === 2) {
-                console.log("【割り込み発動】パターン2 -> 特定の曲「ヒットマーチ」へ切り替えます。");
-                playTrackDirectly(13); // id 13: hit march
-            } else if (targetType === 3) {
-                console.log("【割り込み発動】パターン3 -> 特定の曲「常総節」へ切り替えます。");
-                playTrackDirectly(14); // id 14: hit march2 (常総節)
-            }
-        }
-
-        // === 歌詞（LRC）パーサーと同期ロジック ===
-        async function loadLyrics(trackId, lrcPath) {
-            currentLyrics = [];
-            currentLyricIndex = -1;
-            const container = document.getElementById('lyrics-container');
-            container.innerHTML = '<div class="text-white/50 text-center mt-20 font-bold text-xl">読み込み中...</div>';
-
-            if (!lrcPath) {
-                container.innerHTML = '<div class="text-white/30 text-center mt-20 font-bold text-xl">歌詞がありません</div>';
+        function scheduleInterruption() {
+            if (!currentTrack) return;
+            
+            if (!currentTrack.interruptible || currentTrack.id === 1 || currentTrack.id === 2 || currentTrack.id === 13 || currentTrack.id === 14) {
+                interruptionType = 0;
+                interruptionTriggerTime = null;
                 return;
             }
 
+            const rand = Math.random();
+            if (rand < 0.33) {
+                interruptionType = 0; 
+            } else if (rand < 0.66) {
+                interruptionType = 2; 
+            } else {
+                interruptionType = 3; 
+            }
+
+            hasTriggeredInterruption = false;
+            const duration = audio.duration;
+            if (isNaN(duration) || duration <= 0) return;
+
+            if (interruptionType !== 0) {
+                const minOffset = duration * 0.2;
+                const maxOffset = duration * 0.9;
+                interruptionTriggerTime = minOffset + Math.random() * (maxOffset - minOffset);
+                console.log(`[割り込み予約] 曲名: ${currentTrack.title}, パターン: ${interruptionType}, 発動秒数: ${interruptionTriggerTime.toFixed(1)}秒`);
+            } else {
+                interruptionTriggerTime = null;
+                console.log(`[割り込み予約] パターン1: 割り込みなし（最後まで再生）`);
+            }
+        }
+
+        audio.onloadedmetadata = () => { 
+            updatePositionState(); 
+            scheduleInterruption();
+        };
+
+        function triggerInterruption() {
+            hasTriggeredInterruption = true;
+            const targetType = interruptionType;
+            interruptionType = 0; 
+
+            if (targetType === 2) {
+                console.log("【割り込み発動】パターン2 -> 特定の曲「hit march(13)」へ切り替えます。");
+                playTrackDirectly(13);
+            } else if (targetType === 3) {
+                console.log("【割り込み発動】パターン3 -> 特定の曲「hit march2(14)」へ切り替えます。");
+                playTrackDirectly(14);
+            }
+        }
+
+        async function loadLyrics(trackId, lrcPath) {
+            currentLyrics = []; currentLyricIndex = -1;
+            const container = document.getElementById('lyrics-container');
+            container.innerHTML = '<div class="text-white/50 text-center mt-20 font-bold text-xl">読み込み中...</div>';
+            if (!lrcPath) { container.innerHTML = '<div class="text-white/30 text-center mt-20 font-bold text-xl">歌詞がありません</div>'; return; }
             try {
                 const response = await fetch(lrcPath);
                 if (!response.ok) throw new Error('File not found or CORS error');
                 const text = await response.text();
-                currentLyrics = parseLRC(text);
-                renderLyrics();
+                currentLyrics = parseLRC(text); renderLyrics();
             } catch (error) {
                 console.warn('歌詞読み込みエラー:', error);
-                // 応援歌向けのデモ歌詞（歌詞データがない場合のフォールバック）を自動展開
                 generateDemoLyrics(trackId);
             }
         }
 
-        // 応援演奏を盛り上げるための自動モック歌詞生成
         function generateDemoLyrics(trackId) {
             const track = tracks.find(t => t.id === trackId);
             const container = document.getElementById('lyrics-container');
             if (!track) return;
-
-            // 曲調に合わせたアツいテキスト展開
             let demoLines = [];
-            if (trackId === 1) {
-                demoLines = ["[00:01.00]常総学院高等学校 校歌", "[00:10.00]筑波の山の 峰清く...", "[00:25.00]霞ヶ浦の 水澄みて...", "[00:40.00]若き命を 育みし...", "[01:00.00]我が常総の 誉れあれ！"];
-            } else if (trackId === 11) {
-                demoLines = ["[00:01.00]睡蓮花（常総スペシャルスタイル）", "[00:05.00]さぁ始めよう！常総アルプススタンド！", "[00:12.00]睡蓮の花のように咲き誇れ！", "[00:20.00]濡れたまんまでイっちゃって！", "[00:30.00]打て！打て！スタンド一丸！"];
-            } else if (trackId === 13) {
-                demoLines = ["[00:01.00]特定の応援歌：「ヒットマーチ」", "[00:04.00]（割り込みによる自動強制演奏中）", "[00:10.00]打て！打て！チャンスだ！", "[00:16.00]スタンドからの熱い大声援！", "[00:25.00]勝利を掴め、常総ナイン！"];
-            } else if (trackId === 14) {
-                demoLines = ["[00:01.00]特定の応援歌：「常総節」", "[00:04.00]（割り込みによる自動強制演奏中）", "[00:10.00]伝統の常総節が響き渡る！", "[00:20.00]最後まで必ず再生されます！", "[00:28.00]※再生終了後、次の曲は「睡蓮花」となります"];
-            } else {
-                demoLines = [
-                    `[00:01.00]常総応援：${track.title}`,
-                    "[00:08.00]レッツゴー常総！",
-                    "[00:15.00]アルプスの大応援をその胸に！",
-                    "[00:22.00]響けブラスバンド！",
-                    "[00:30.00]かっ飛ばせ！スタンドから勝利への架け橋を！"
-                ];
-            }
-            
-            currentLyrics = parseLRC(demoLines.join("\n"));
-            renderLyrics();
+            if (trackId === 1) demoLines = ["[00:01.00]常総学院高等学校 校歌", "[00:10.00]筑波の山の 峰清く...", "[00:25.00]霞ヶ浦の 水澄みて...", "[00:40.00]若き命を 育みし...", "[01:00.00]我が常総の 誉れあれ！"];
+            else if (trackId === 11) demoLines = ["[00:01.00]睡蓮花（常総スペシャルスタイル）", "[00:05.00]さぁ始めよう！常総アルプススタンド！", "[00:12.00]睡蓮の花のように咲き誇れ！", "[00:20.00]濡れたまんまでイっちゃって！", "[00:30.00]打て！打て！スタンド一丸！"];
+            else if (trackId === 13) demoLines = ["[00:01.00]特定の応援歌：「ヒットマーチ」", "[00:04.00]（割り込みによる自動強制演奏中）", "[00:10.00]打て！打て！チャンスだ！", "[00:16.00]スタンドからの熱い大声援！", "[00:25.00]勝利を掴め、常総ナイン！"];
+            else if (trackId === 14) demoLines = ["[00:01.00]特定の応援歌：「常総節」", "[00:04.00]（割り込みによる自動強制演奏中）", "[00:10.00]伝統の常総節が響き渡る！", "[00:20.00]最後まで必ず再生されます！", "[00:28.00]※再生終了後、次の曲は「睡蓮花」となります"];
+            else demoLines = [`[00:01.00]常総応援：${track.title}`, "[00:08.00]レッツゴー常総！", "[00:15.00]アルプスの大応援をその胸に！", "[00:22.00]響けブラスバンド！", "[00:30.00]かっ飛ばせ！スタンドから勝利への架け橋を！"];
+            currentLyrics = parseLRC(demoLines.join("\n")); renderLyrics();
         }
 
         function parseLRC(lrcText) {
-            const lines = lrcText.split('\n');
-            const lyrics = [];
-            const timeReg = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-            
+            const lines = lrcText.split('\n'); const lyrics = []; const timeReg = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
             for (let line of lines) {
                 const match = timeReg.exec(line);
                 if (match) {
-                    const min = parseInt(match[1], 10);
-                    const sec = parseInt(match[2], 10);
-                    const ms = parseInt(match[3], 10);
+                    const min = parseInt(match[1], 10); const sec = parseInt(match[2], 10); const ms = parseInt(match[3], 10);
                     const time = min * 60 + sec + (ms / (match[3].length === 3 ? 1000 : 100));
                     const text = line.replace(timeReg, '').trim();
-                    if (text) { lyrics.push({ time, text }); }
+                    if (text) lyrics.push({ time, text });
                 }
             }
             return lyrics;
         }
 
         function renderLyrics() {
-            const container = document.getElementById('lyrics-container');
-            container.innerHTML = '';
-            
-            if (currentLyrics.length === 0) {
-                container.innerHTML = '<div class="text-white/30 text-center mt-20 font-bold text-xl">歌詞データがありません</div>';
-                return;
-            }
-
+            const container = document.getElementById('lyrics-container'); container.innerHTML = '';
+            if (currentLyrics.length === 0) { container.innerHTML = '<div class="text-white/30 text-center mt-20 font-bold text-xl">歌詞データがありません</div>'; return; }
             currentLyrics.forEach((lyric, index) => {
-                const p = document.createElement('p');
-                p.id = `lyric-${index}`;
-                p.className = 'lyric-line';
-                p.innerText = lyric.text;
-                p.onclick = () => {
-                    audio.currentTime = lyric.time;
-                    if (audio.paused) audio.play();
-                };
+                const p = document.createElement('p'); p.id = `lyric-${index}`; p.className = 'lyric-line'; p.innerText = lyric.text;
+                p.onclick = () => { audio.currentTime = lyric.time; if (audio.paused) audio.play(); };
                 container.appendChild(p);
             });
-            
-            const spacer = document.createElement('div');
-            spacer.className = "h-40";
-            container.appendChild(spacer);
+            const spacer = document.createElement('div'); spacer.className = "h-40"; container.appendChild(spacer);
         }
 
         function updateLyricsUI(currentTime) {
             if (currentLyrics.length === 0) return;
-            
             let newIndex = -1;
-            for (let i = 0; i < currentLyrics.length; i++) {
-                if (currentTime + 0.3 >= currentLyrics[i].time) {
-                    newIndex = i;
-                } else {
-                    break;
-                }
-            }
-            
+            for (let i = 0; i < currentLyrics.length; i++) { if (currentTime + 0.3 >= currentLyrics[i].time) newIndex = i; else break; }
             if (newIndex !== currentLyricIndex && newIndex !== -1) {
-                if (currentLyricIndex !== -1) {
-                    const oldEl = document.getElementById(`lyric-${currentLyricIndex}`);
-                    if (oldEl) oldEl.classList.remove('lyric-active');
-                }
-                
-                currentLyricIndex = newIndex;
-                const activeEl = document.getElementById(`lyric-${currentLyricIndex}`);
-                
-                if (activeEl) {
-                    activeEl.classList.add('lyric-active');
-                    const lyricsView = document.getElementById('lyrics-view');
-                    if (lyricsView.style.transform === "translateY(0px)" || lyricsView.style.transform === "translateY(0)") {
-                        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }
+                if (currentLyricIndex !== -1) { const oldEl = document.getElementById(`lyric-${currentLyricIndex}`); if (oldEl) oldEl.classList.remove('lyric-active'); }
+                currentLyricIndex = newIndex; const activeEl = document.getElementById(`lyric-${currentLyricIndex}`);
+                if (activeEl) { activeEl.classList.add('lyric-active'); const lyricsView = document.getElementById('lyrics-view'); if (lyricsView.style.transform === "translateY(0px)" || lyricsView.style.transform === "translateY(0)") activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             }
         }
 
         function onLyricsButtonClick() { toggleLyricsView(true); }
         function toggleLyricsView(show) {
-            const lyricsView = document.getElementById('lyrics-view');
-            const lyricsBtn = document.getElementById('btn-lyrics-toggle');
-            if (show) {
-                lyricsView.style.transform = "translateY(0)";
-                if(lyricsBtn) { lyricsBtn.classList.add('text-white'); lyricsBtn.classList.remove('text-white/40'); }
-                if (currentLyricIndex !== -1) {
-                    setTimeout(() => {
-                        const activeEl = document.getElementById(`lyric-${currentLyricIndex}`);
-                        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 300);
-                }
-            } else {
-                lyricsView.style.transform = "translateY(100%)";
-                if(lyricsBtn) { lyricsBtn.classList.remove('text-white'); lyricsBtn.classList.add('text-white/40'); }
-            }
+            const lyricsView = document.getElementById('lyrics-view'); const lyricsBtn = document.getElementById('btn-lyrics-toggle');
+            if (show) { lyricsView.style.transform = "translateY(0)"; if(lyricsBtn) { lyricsBtn.classList.add('text-white'); lyricsBtn.classList.remove('text-white/40'); } if (currentLyricIndex !== -1) { setTimeout(() => { const activeEl = document.getElementById(`lyric-${currentLyricIndex}`); if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300); } } 
+            else { lyricsView.style.transform = "translateY(100%)"; if(lyricsBtn) { lyricsBtn.classList.remove('text-white'); lyricsBtn.classList.add('text-white/40'); } }
         }
 
-        // --- プレイヤー制御・ループ・スワイプ処理 ---
         function setLoopStart() { loopStartTime = audio.currentTime; isLooping = true; updateLoopUI(); }
         function setLoopFinish() { if (loopStartTime === null) loopStartTime = 0; loopFinishTime = audio.currentTime; isLooping = true; if (loopFinishTime < loopStartTime) [loopStartTime, loopFinishTime] = [loopFinishTime, loopStartTime]; updateLoopUI(); }
         function toggleLoopMode() { if (isLooping) resetLoopState(); else isLooping = true; updateLoopUI(); }
@@ -1142,12 +1263,9 @@
 
         audio.ontimeupdate = () => {
             if (currentQueueIdx === -1 && !currentTrack) return;
-
-            // 再生秒での割り込み監視
-            if (currentTrack && currentTrack.interruptible && interruptionType !== 0 && interruptionTriggerTime !== null && !hasTriggeredInterruption) {
-                if (audio.currentTime >= interruptionTriggerTime) {
-                    triggerInterruption();
-                }
+            
+            if (currentTrack && interruptionType !== 0 && interruptionTriggerTime !== null && !hasTriggeredInterruption) {
+                if (audio.currentTime >= interruptionTriggerTime) triggerInterruption();
             }
 
             if (isLooping) { if (loopStartTime !== null && loopFinishTime !== null) { if (audio.currentTime >= loopFinishTime) audio.currentTime = loopStartTime; } else { if (audio.currentTime >= audio.duration - 0.2) { audio.currentTime = 0; audio.play(); } } }
@@ -1161,65 +1279,39 @@
             updateLyricsUI(audio.currentTime);
         };
 
-        // 再生が終了したときのルール遷移処理
         audio.onended = () => { 
-            if (isLooping) {
-                if (loopStartTime === null || loopFinishTime === null) {
-                    audio.currentTime = 0;
-                    audio.play();
-                }
-                return;
-            }
+            if (isLooping) { if (loopStartTime === null || loopFinishTime === null) { audio.currentTime = 0; audio.play(); } return; }
 
-            console.log(`[再生終了判定] 曲: ${currentTrack ? currentTrack.title : "不明"}`);
-
-            if (currentTrack) {
-                if (currentTrack.id === 14) {
-                    // パターン3：常総節が最後まで再生終了したとき
-                    // 次にオペレーターが再び再生ボタンを押したら「睡蓮花」（id 11）限定で始まる
-                    nextReservedTrackId = 11;
-                    console.log("-> 【再生停止】常総節の完了。次回予約に「睡蓮花(ID 11)」がセットされました。");
-                } else {
-                    // パターン1（通常の曲が終了）、またはヒットマーチ（id 13）が終了したとき
-                    // 次に再生ボタンを押したときは、ランダムで通常応援曲が再生される
-                    nextReservedTrackId = getRandomInterruptibleTrackId();
-                    console.log(`-> 【再生停止】次回予約に「ランダム曲(ID ${nextReservedTrackId})」がセットされました。`);
-                }
+            if (currentTrack && currentTrack.id === 14) {
+                nextReservedTrackId = 11;
             } else {
                 nextReservedTrackId = getRandomInterruptibleTrackId();
             }
-
-            audio.pause();
-            updatePlayButtonIcons();
+            
+            audio.pause(); 
+            updatePlayButtonIcons(); 
             updateReservedBadge();
         };
 
-        // 割り込み対応している通常曲からランダムで1曲のIDを選ぶ
         function getRandomInterruptibleTrackId() {
             const list = tracks.filter(t => t.interruptible);
-            if (list.length === 0) return 3; // フォールバックでダッシュ常総
+            if (list.length === 0) return 3; 
             const randIndex = Math.floor(Math.random() * list.length);
             return list[randIndex].id;
         }
 
-        // 再生・一時停止、並びに遷移予約制御
         function handlePlayPause() { 
             if (audio.paused) {
                 if (nextReservedTrackId !== null) {
-                    // 終了後にオペレーターが再び再生ボタンを押したとき、予約されている次の曲を起動
-                    const targetId = nextReservedTrackId;
-                    nextReservedTrackId = null; 
-                    updateReservedBadge();
-                    console.log(`[手動再生トリガー発動] 予約曲の再生を開始します。ID: ${targetId}`);
+                    const targetId = nextReservedTrackId; nextReservedTrackId = null; updateReservedBadge();
                     playTrackDirectly(targetId);
                 } else if (currentTrack) {
                     audio.play().catch(e => console.warn(e));
-                } else {
-                    // まだ1曲も選択されていない場合は最初の曲をキューから再生
-                    playTrackFromQueue(0);
-                }
+                    updatePlayButtonIcons();
+                } else playTrackFromQueue(0);
             } else {
                 audio.pause();
+                updatePlayButtonIcons();
             }
         }
 
@@ -1227,32 +1319,27 @@
             const isPaused = audio.paused;
             document.getElementById('mini-play-btn').className = isPaused ? "fas fa-play text-xl" : "fas fa-pause text-xl";
             document.getElementById('full-play-btn').className = isPaused ? "fas fa-play" : "fas fa-pause";
+            
+            const simPlayBtn = document.getElementById('sim-play-btn');
+            if (simPlayBtn) {
+                simPlayBtn.className = isPaused ? "fas fa-play text-lg" : "fas fa-pause text-lg";
+            }
+            
             document.getElementById('full-img').style.transform = isPaused ? "scale(0.85)" : "scale(1.0)";
         }
 
         function handleNext() { forceNextTrack(); }
         function handlePrev() { if (currentQueueIdx === -1) return; if (audio.currentTime >= 5.0) audio.currentTime = 0; else forcePrevTrack(); }
+        function forcePrevTrack() { nextReservedTrackId = null; updateReservedBadge(); if (currentQueueIdx === -1) return; playTrackFromQueue((currentQueueIdx - 1 + playQueue.length) % playQueue.length); }
+        function forceNextTrack() { nextReservedTrackId = null; updateReservedBadge(); if (currentQueueIdx === -1) return; playTrackFromQueue((currentQueueIdx + 1) % playQueue.length); }
         
-        function forcePrevTrack() { 
-            nextReservedTrackId = null;
-            updateReservedBadge();
-            if (currentQueueIdx === -1) return; 
-            playTrackFromQueue((currentQueueIdx - 1 + playQueue.length) % playQueue.length); 
+        function handleSeek(v) { 
+            audio.currentTime = v; 
+            if (!isNaN(audio.duration)) document.getElementById('seek-progress').style.width = (v / audio.duration) * 100 + '%';
         }
-        function forceNextTrack() { 
-            nextReservedTrackId = null;
-            updateReservedBadge();
-            if (currentQueueIdx === -1) return; 
-            playTrackFromQueue((currentQueueIdx + 1) % playQueue.length); 
-        }
-        function handleSeek(v) { audio.currentTime = v; if (!isNaN(audio.duration)) document.getElementById('seek-progress').style.width = (v / audio.duration) * 100 + '%'; }
 
         function handleMiniPlayerClick() { if (!isMiniPlayerSwiping) toggleFullPlayer(true); }
-        function toggleFullPlayer(show) {
-            document.getElementById('full-player').style.transform = show ? "translateY(0)" : "translateY(100%)";
-            const mini = document.getElementById('mini-player'); mini.style.opacity = show ? "0" : "1"; mini.style.pointerEvents = show ? "none" : "auto";
-        }
-
+        function toggleFullPlayer(show) { document.getElementById('full-player').style.transform = show ? "translateY(0)" : "translateY(100%)"; const mini = document.getElementById('mini-player'); mini.style.opacity = show ? "0" : "1"; mini.style.pointerEvents = show ? "none" : "auto"; }
         function onQueueButtonClick() { toggleQueueView(true); }
         function toggleQueueView(show) {
             const queueView = document.getElementById('queue-view'); const queueBtn = document.getElementById('btn-queue-toggle');
@@ -1260,196 +1347,38 @@
             else { queueView.style.transform = "translateY(100%)"; if(queueBtn) { queueBtn.classList.remove('text-white'); queueBtn.classList.add('text-white/40'); } }
         }
 
-        // キューリストのドラッグ＆ドロップソート
         function renderQueueList() {
-            const container = document.getElementById('queue-list'); 
-            container.innerHTML = '';
-            
+            const container = document.getElementById('queue-list'); container.innerHTML = '';
             playQueue.forEach((trackId, i) => {
-                const t = tracks.find(tr => tr.id === trackId);
-                if(!t) return;
-
-                const isActive = (i === currentQueueIdx); 
-                
-                const wrapper = document.createElement('div'); 
-                wrapper.id = `queue-item-${i}`;
-                wrapper.className = "mb-1";
-                
-                wrapper.innerHTML = `
-                    <div class="flex items-center gap-4 py-3 px-3 rounded-xl cursor-pointer ${isActive ? 'bg-white/10 border-l-4 border-red-500' : 'hover:bg-white/5 active:bg-white/10 border-l-4 border-transparent'}">
-                        <div class="w-10 h-10 relative flex-shrink-0" onclick="playTrackFromQueue(${i})">
-                            <img src="${t.img}" class="w-full h-full rounded shadow-md object-cover" onerror="this.src='https://via.placeholder.com/100x100.png?text=JOSO';">
-                            ${isActive ? `<div class="absolute inset-0 bg-black/40 rounded flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs"></i></div>` : ''}
-                        </div>
-                        <div class="flex-1 min-w-0" onclick="playTrackFromQueue(${i})">
-                            <div class="text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-white/80'}">${t.title}</div>
-                            <div class="text-[11px] truncate ${isActive ? 'text-white/70' : 'text-white/40'}">${t.artist}</div>
-                        </div>
-                        <div class="w-10 h-10 flex items-center justify-center text-white/40 cursor-grab queue-drag-handle shrink-0 hover:text-white transition-colors">
-                            <i class="fas fa-bars"></i>
-                        </div>
-                    </div>
-                `;
+                const t = tracks.find(tr => tr.id === trackId); if(!t) return;
+                const isActive = (i === currentQueueIdx); const wrapper = document.createElement('div'); wrapper.id = `queue-item-${i}`; wrapper.className = "mb-1";
+                wrapper.innerHTML = `<div class="flex items-center gap-4 py-3 px-3 rounded-xl cursor-pointer ${isActive ? 'bg-white/10 border-l-4 border-red-500' : 'hover:bg-white/5 active:bg-white/10 border-l-4 border-transparent'}"><div class="w-10 h-10 relative flex-shrink-0" onclick="playTrackFromQueue(${i})"><img src="${t.img}" class="w-full h-full rounded shadow-md object-cover" onerror="this.src='https://via.placeholder.com/100x100.png?text=JOSO';">${isActive ? `<div class="absolute inset-0 bg-black/40 rounded flex items-center justify-center"><i class="fas fa-volume-up text-white text-xs"></i></div>` : ''}</div><div class="flex-1 min-w-0" onclick="playTrackFromQueue(${i})"><div class="text-sm font-semibold truncate ${isActive ? 'text-white' : 'text-white/80'}">${t.title}</div><div class="text-[11px] truncate ${isActive ? 'text-white/70' : 'text-white/40'}">${t.artist}</div></div><div class="w-10 h-10 flex items-center justify-center text-white/40 cursor-grab queue-drag-handle shrink-0 hover:text-white transition-colors"><i class="fas fa-bars"></i></div></div>`;
                 container.appendChild(wrapper);
             });
-
-            if (currentQueueIdx !== -1) { 
-                setTimeout(() => { 
-                    const activeItem = document.getElementById(`queue-item-${currentQueueIdx}`); 
-                    if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-                }, 100); 
-            }
-
-            if(queueSortable) {
-                queueSortable.destroy();
-            }
-            
-            queueSortable = new Sortable(container, { 
-                handle: '.queue-drag-handle', 
-                animation: 200, 
-                ghostClass: 'sortable-ghost', 
-                dragClass: 'sortable-drag', 
-                scroll: true,
-                scrollSensitivity: 120,
-                scrollSpeed: 25,
-                forceFallback: true,
-                fallbackOnBody: true,
-                onEnd: function (evt) { 
-                    const ni = evt.newIndex; 
-                    const oi = evt.oldIndex; 
-                    if(oi === ni) return; 
-                    
-                    const movedItem = playQueue.splice(oi, 1)[0]; 
-                    playQueue.splice(ni, 0, movedItem); 
-                    
-                    if (currentQueueIdx === oi) {
-                        currentQueueIdx = ni;
-                    } else if (oi < currentQueueIdx && ni >= currentQueueIdx) {
-                        currentQueueIdx--;
-                    } else if (oi > currentQueueIdx && ni <= currentQueueIdx) {
-                        currentQueueIdx++;
-                    }
-                    
-                    renderQueueList(); 
-                } 
-            });
+            if (currentQueueIdx !== -1) setTimeout(() => { const activeItem = document.getElementById(`queue-item-${currentQueueIdx}`); if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); 
+            if(queueSortable) queueSortable.destroy();
+            queueSortable = new Sortable(container, { handle: '.queue-drag-handle', animation: 200, ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', scroll: true, scrollSensitivity: 120, scrollSpeed: 25, forceFallback: true, fallbackOnBody: true, onEnd: function (evt) { const ni = evt.newIndex; const oi = evt.oldIndex; if(oi === ni) return; const movedItem = playQueue.splice(oi, 1)[0]; playQueue.splice(ni, 0, movedItem); if (currentQueueIdx === oi) currentQueueIdx = ni; else if (oi < currentQueueIdx && ni >= currentQueueIdx) currentQueueIdx--; else if (oi > currentQueueIdx && ni <= currentQueueIdx) currentQueueIdx++; renderQueueList(); } });
         }
 
         function formatTime(s) { if (isNaN(s)) return "0:00"; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' + sec : sec}`; }
 
         function setupSwipeEvents() {
-            const artworkWrapper = document.getElementById('artwork-wrapper');
-            let startX = 0, startY = 0, isArtworkDragging = false;
+            const artworkWrapper = document.getElementById('artwork-wrapper'); let startX = 0, startY = 0, isArtworkDragging = false;
             artworkWrapper.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; isArtworkDragging = true; artworkWrapper.style.transition = 'none'; }, { passive: true });
-            artworkWrapper.addEventListener('touchmove', (e) => {
-                if (!isArtworkDragging) return; const diffX = e.touches[0].clientX - startX; const diffY = e.touches[0].clientY - startY;
-                if (Math.abs(diffX) > Math.abs(diffY)) { e.preventDefault(); e.stopPropagation(); artworkWrapper.style.transform = `translateX(${diffX}px)`; } 
-                else { isArtworkDragging = false; artworkWrapper.style.transition = 'transform 0.3s ease'; artworkWrapper.style.transform = `translateX(0)`; }
-            }, { passive: false });
-            artworkWrapper.addEventListener('touchend', (e) => {
-                if (!isArtworkDragging) return; isArtworkDragging = false; const diffX = e.changedTouches[0].clientX - startX; const threshold = window.innerWidth * 0.25;
-                if (diffX < -threshold) {
-                    artworkWrapper.style.transition = 'transform 0.2s ease'; artworkWrapper.style.transform = `translateX(-100vw)`;
-                    setTimeout(() => { forceNextTrack(); artworkWrapper.style.transition = 'none'; artworkWrapper.style.transform = `translateX(100vw)`; void artworkWrapper.offsetWidth; artworkWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'; artworkWrapper.style.transform = `translateX(0)`; }, 200);
-                } else if (diffX > threshold) {
-                    artworkWrapper.style.transition = 'transform 0.2s ease'; artworkWrapper.style.transform = `translateX(100vw)`;
-                    setTimeout(() => { forcePrevTrack(); artworkWrapper.style.transition = 'none'; artworkWrapper.style.transform = `translateX(-100vw)`; void artworkWrapper.offsetWidth; artworkWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'; artworkWrapper.style.transform = `translateX(0)`; }, 200);
-                } else { artworkWrapper.style.transition = 'transform 0.3s ease'; artworkWrapper.style.transform = `translateX(0)`; }
-            });
+            artworkWrapper.addEventListener('touchmove', (e) => { if (!isArtworkDragging) return; const diffX = e.touches[0].clientX - startX; const diffY = e.touches[0].clientY - startY; if (Math.abs(diffX) > Math.abs(diffY)) { e.preventDefault(); e.stopPropagation(); artworkWrapper.style.transform = `translateX(${diffX}px)`; } else { isArtworkDragging = false; artworkWrapper.style.transition = 'transform 0.3s ease'; artworkWrapper.style.transform = `translateX(0)`; } }, { passive: false });
+            artworkWrapper.addEventListener('touchend', (e) => { if (!isArtworkDragging) return; isArtworkDragging = false; const diffX = e.changedTouches[0].clientX - startX; const threshold = window.innerWidth * 0.25; if (diffX < -threshold) { artworkWrapper.style.transition = 'transform 0.2s ease'; artworkWrapper.style.transform = `translateX(-100vw)`; setTimeout(() => { forceNextTrack(); artworkWrapper.style.transition = 'none'; artworkWrapper.style.transform = `translateX(100vw)`; void artworkWrapper.offsetWidth; artworkWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'; artworkWrapper.style.transform = `translateX(0)`; }, 200); } else if (diffX > threshold) { artworkWrapper.style.transition = 'transform 0.2s ease'; artworkWrapper.style.transform = `translateX(100vw)`; setTimeout(() => { forcePrevTrack(); artworkWrapper.style.transition = 'none'; artworkWrapper.style.transform = `translateX(-100vw)`; void artworkWrapper.offsetWidth; artworkWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'; artworkWrapper.style.transform = `translateX(0)`; }, 200); } else { artworkWrapper.style.transition = 'transform 0.3s ease'; artworkWrapper.style.transform = `translateX(0)`; } });
 
-            const miniSwipeArea = document.getElementById('mini-swipe-area'); const miniContentWrapper = document.getElementById('mini-content-wrapper');
-            let mStartX = 0, mStartY = 0, isMiniDragging = false;
+            const miniSwipeArea = document.getElementById('mini-swipe-area'); const miniContentWrapper = document.getElementById('mini-content-wrapper'); let mStartX = 0, mStartY = 0, isMiniDragging = false;
             miniSwipeArea.addEventListener('touchstart', (e) => { mStartX = e.touches[0].clientX; mStartY = e.touches[0].clientY; isMiniDragging = true; isMiniPlayerSwiping = false; miniContentWrapper.style.transition = 'none'; }, { passive: true });
-            miniSwipeArea.addEventListener('touchmove', (e) => {
-                if (!isMiniDragging) return; const diffX = e.touches[0].clientX - mStartX; const diffY = e.touches[0].clientY - mStartY;
-                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) { e.preventDefault(); isMiniPlayerSwiping = true; miniContentWrapper.style.transform = `translateX(${diffX}px)`; } 
-                else if (Math.abs(diffY) > Math.abs(diffX)) { isMiniDragging = false; miniContentWrapper.style.transition = 'transform 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; }
-            }, { passive: false });
-            miniSwipeArea.addEventListener('touchend', (e) => {
-                if (!isMiniDragging) return; isMiniDragging = false; const diffX = e.changedTouches[0].clientX - mStartX; const threshold = miniSwipeArea.offsetWidth * 0.3;
-                if (isMiniPlayerSwiping) {
-                    if (diffX < -threshold) {
-                        miniContentWrapper.style.transition = 'transform 0.2s ease, opacity 0.2s ease'; miniContentWrapper.style.transform = `translateX(-100%)`; miniContentWrapper.style.opacity = '0';
-                        setTimeout(() => { forceNextTrack(); miniContentWrapper.style.transition = 'none'; miniContentWrapper.style.transform = `translateX(100%)`; void miniContentWrapper.offsetWidth; miniContentWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; miniContentWrapper.style.opacity = '1'; setTimeout(() => isMiniPlayerSwiping = false, 50); }, 200);
-                    } else if (diffX > threshold) {
-                        miniContentWrapper.style.transition = 'transform 0.2s ease, opacity 0.2s ease'; miniContentWrapper.style.transform = `translateX(100%)`; miniContentWrapper.style.opacity = '0';
-                        setTimeout(() => { forcePrevTrack(); miniContentWrapper.style.transition = 'none'; miniContentWrapper.style.transform = `translateX(-100%)`; void miniContentWrapper.offsetWidth; miniContentWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; miniContentWrapper.style.opacity = '1'; setTimeout(() => isMiniPlayerSwiping = false, 50); }, 200);
-                    } else { miniContentWrapper.style.transition = 'transform 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; setTimeout(() => isMiniPlayerSwiping = false, 50); }
-                }
-            });
+            miniSwipeArea.addEventListener('touchmove', (e) => { if (!isMiniDragging) return; const diffX = e.touches[0].clientX - mStartX; const diffY = e.touches[0].clientY - mStartY; if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) { e.preventDefault(); isMiniPlayerSwiping = true; miniContentWrapper.style.transform = `translateX(${diffX}px)`; } else if (Math.abs(diffY) > Math.abs(diffX)) { isMiniDragging = false; miniContentWrapper.style.transition = 'transform 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; } }, { passive: false });
+            miniSwipeArea.addEventListener('touchend', (e) => { if (!isMiniDragging) return; isMiniDragging = false; const diffX = e.changedTouches[0].clientX - mStartX; const threshold = miniSwipeArea.offsetWidth * 0.3; if (isMiniPlayerSwiping) { if (diffX < -threshold) { miniContentWrapper.style.transition = 'transform 0.2s ease, opacity 0.2s ease'; miniContentWrapper.style.transform = `translateX(-100%)`; miniContentWrapper.style.opacity = '0'; setTimeout(() => { forceNextTrack(); miniContentWrapper.style.transition = 'none'; miniContentWrapper.style.transform = `translateX(100%)`; void miniContentWrapper.offsetWidth; miniContentWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; miniContentWrapper.style.opacity = '1'; setTimeout(() => isMiniPlayerSwiping = false, 50); }, 200); } else if (diffX > threshold) { miniContentWrapper.style.transition = 'transform 0.2s ease, opacity 0.2s ease'; miniContentWrapper.style.transform = `translateX(100%)`; miniContentWrapper.style.opacity = '0'; setTimeout(() => { forcePrevTrack(); miniContentWrapper.style.transition = 'none'; miniContentWrapper.style.transform = `translateX(-100%)`; void miniContentWrapper.offsetWidth; miniContentWrapper.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; miniContentWrapper.style.opacity = '1'; setTimeout(() => isMiniPlayerSwiping = false, 50); }, 200); } else { miniContentWrapper.style.transition = 'transform 0.3s ease'; miniContentWrapper.style.transform = `translateX(0)`; setTimeout(() => isMiniPlayerSwiping = false, 50); } } });
 
-            function addVerticalSwipeListener(element, onSwipeDown) {
-                let sY = 0, sX = 0, isT = false;
-                element.addEventListener('touchstart', e => { 
-                    if (e.target.closest('.queue-drag-handle') || e.target.closest('.drag-handle')) {
-                        isT = false;
-                        return;
-                    }
-                    sY = e.touches[0].clientY; sX = e.touches[0].clientX; isT = true; 
-                }, { passive: true });
-                
-                element.addEventListener('touchmove', e => {
-                    if (!isT) return; const cY = e.touches[0].clientY, cX = e.touches[0].clientX;
-                    if (Math.abs(cX - sX) > Math.abs(cY - sY)) return;
-                    const scrollable = e.target.closest('.overflow-y-auto'); if (scrollable && scrollable.scrollTop > 0) return;
-                    if (cY - sY > 80) { onSwipeDown(); isT = false; }
-                }, { passive: true });
-                element.addEventListener('touchend', () => { isT = false; });
-            }
-
-            addVerticalSwipeListener(document.getElementById('full-player'), () => toggleFullPlayer(false));
-            addVerticalSwipeListener(document.getElementById('queue-view'), () => toggleQueueView(false));
-            addVerticalSwipeListener(document.getElementById('lyrics-view'), () => toggleLyricsView(false));
+            function addVerticalSwipeListener(element, onSwipeDown) { let sY = 0, sX = 0, isT = false; element.addEventListener('touchstart', e => { if (e.target.closest('.queue-drag-handle') || e.target.closest('.drag-handle')) { isT = false; return; } sY = e.touches[0].clientY; sX = e.touches[0].clientX; isT = true; }, { passive: true }); element.addEventListener('touchmove', e => { if (!isT) return; const cY = e.touches[0].clientY, cX = e.touches[0].clientX; if (Math.abs(cX - sX) > Math.abs(cY - sY)) return; const scrollable = e.target.closest('.overflow-y-auto'); if (scrollable && scrollable.scrollTop > 0) return; if (cY - sY > 80) { onSwipeDown(); isT = false; } }, { passive: true }); element.addEventListener('touchend', () => { isT = false; }); }
+            addVerticalSwipeListener(document.getElementById('full-player'), () => toggleFullPlayer(false)); addVerticalSwipeListener(document.getElementById('queue-view'), () => toggleQueueView(false)); addVerticalSwipeListener(document.getElementById('lyrics-view'), () => toggleLyricsView(false));
         }
 
-        function updatePositionState() {
-            if ('mediaSession' in navigator && !isNaN(audio.duration) && audio.duration > 0) {
-                navigator.mediaSession.setPositionState({
-                    duration: audio.duration,
-                    playbackRate: audio.playbackRate || 1,
-                    position: audio.currentTime
-                });
-            }
-        }
-
-        function updateMediaSession() {
-            if ('mediaSession' in navigator && currentTrack) {
-                const t = currentTrack;
-                navigator.mediaSession.metadata = new MediaMetadata({ 
-                    title: t.title, 
-                    artist: t.artist, 
-                    artwork: [ 
-                        { src: t.img, sizes: '96x96', type: 'image/png' }, 
-                        { src: t.img, sizes: '512x512', type: 'image/png' }
-                    ] 
-                });
-                
-                navigator.mediaSession.setActionHandler('play', () => { 
-                    audio.play().catch(e => console.warn("Play error:", e)); 
-                    updatePositionState();
-                }); 
-                navigator.mediaSession.setActionHandler('pause', () => { 
-                    audio.pause(); 
-                    updatePositionState();
-                });
-
-                navigator.mediaSession.setActionHandler('previoustrack', () => {
-                    forcePrevTrack();
-                }); 
-                navigator.mediaSession.setActionHandler('nexttrack', () => {
-                    forceNextTrack();
-                });
-
-                navigator.mediaSession.setActionHandler('seekto', (details) => {
-                    if (details.fastSeek && 'fastSeek' in audio) {
-                        audio.fastSeek(details.seekTime);
-                    } else {
-                        audio.currentTime = details.seekTime;
-                    }
-                    updatePositionState();
-                });
-            }
-        }
+        function updatePositionState() { if ('mediaSession' in navigator && !isNaN(audio.duration) && audio.duration > 0) { navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: audio.playbackRate || 1, position: audio.currentTime }); } }
+        function updateMediaSession() { if ('mediaSession' in navigator && currentTrack) { const t = currentTrack; navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.artist, artwork: [ { src: t.img, sizes: '96x96', type: 'image/png' }, { src: t.img, sizes: '512x512', type: 'image/png' } ] }); navigator.mediaSession.setActionHandler('play', () => { audio.play().catch(e => console.warn("Play error:", e)); updatePositionState(); updatePlayButtonIcons(); }); navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); updatePositionState(); updatePlayButtonIcons(); }); navigator.mediaSession.setActionHandler('previoustrack', () => { forcePrevTrack(); }); navigator.mediaSession.setActionHandler('nexttrack', () => { forceNextTrack(); }); navigator.mediaSession.setActionHandler('seekto', (details) => { if (details.fastSeek && 'fastSeek' in audio) { audio.fastSeek(details.seekTime); } else { audio.currentTime = details.seekTime; } updatePositionState(); }); } }
 
         initLibrary();
         setupSwipeEvents();
