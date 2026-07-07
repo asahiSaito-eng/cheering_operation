@@ -216,7 +216,7 @@
         <div class="mt-4 mb-1.5 text-[9px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5 z-10 shrink-0">
             <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>1球ごとの試合実況ログ (8秒間隔)
         </div>
-        <!-- ログコンテナ：flex-colにして上に要素を追加していく -->
+        <!-- ログコンテナ -->
         <div id="sim-log-container" class="flex-grow space-y-2 overflow-y-auto scroll-smooth flex flex-col hide-scrollbar z-10 mb-2">
         </div>
 
@@ -342,9 +342,22 @@
         let currentLyricIndex = -1;
 
         // 割り込みパターン用変数
-        let interruptionType = 0; // 0:なし, 2:hit march, 3:hit march2
+        let interruptionType = 0; // 0:なし, 2:hit march (ヒットマーチ2は得点時のみなので除外)
         let interruptionTriggerTime = null; 
         let hasTriggeredInterruption = false; 
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('modal-enter');
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('modal-enter');
+            setTimeout(() => { modal.classList.add('pointer-events-none'); }, 300);
+        }
 
         // ==========================================
         // ⚾ シミュレーション進行処理
@@ -506,9 +519,11 @@
                 // 自チーム（後攻・裏）の攻撃でヒット/得点があった場合、自動で曲を流す
                 if (!simState.isTop) {
                     if (runsScoredThisPitch > 0) {
-                        if (!currentTrack || currentTrack.interruptible) playTrackDirectly(14); // hit march2
+                        // 得点した時のみヒットマーチ2を流す
+                        if (!currentTrack || currentTrack.interruptible || currentTrack.id === 13) playTrackDirectly(14); 
                     } else if (isHit || isHomerun) {
-                        if (!currentTrack || currentTrack.interruptible) playTrackDirectly(13); // hit march
+                        // ヒットのみ（得点なし）の時は通常のヒットマーチ
+                        if (!currentTrack || currentTrack.interruptible) playTrackDirectly(13); 
                     }
                 }
                 
@@ -631,7 +646,7 @@
             }
         }
 
-        // ログ出力を安全に行うための改良版
+        // ログ出力を安全に行う
         function addSimLog(text) {
             try {
                 const container = document.getElementById('sim-log-container');
@@ -641,10 +656,8 @@
                 logDiv.className = "bg-white/10 rounded-lg p-3 text-sm font-semibold text-white/90 border border-white/5 animate-fadeIn";
                 logDiv.innerText = text;
                 
-                // コンテナの先頭（一番上）に追加して常に最新を見せる
+                // 新しいログを上に追加する
                 container.prepend(logDiv);
-                
-                // 強制的にスクロールを一番上に戻す
                 container.scrollTop = 0;
             } catch (e) {
                 console.error("Error in addSimLog:", e);
@@ -673,7 +686,6 @@
                     updatePlayButtonIcons();
                 }
                 updateMediaSession();
-                // 歌詞ロードの処理がエラーになっても止まらないようにする
                 loadLyrics(track.id, track.lrc).catch(e => console.warn(e));
             } catch (e) {
                 console.error("Error in playTrackDirectly:", e);
@@ -714,19 +726,19 @@
             try {
                 if (!currentTrack) return;
                 
+                // 校歌、応援歌、ヒットマーチ1&2などは自動割り込み対象外
                 if (!currentTrack.interruptible || currentTrack.id === 1 || currentTrack.id === 2 || currentTrack.id === 13 || currentTrack.id === 14) {
                     interruptionType = 0;
                     interruptionTriggerTime = null;
                     return;
                 }
 
+                // 25%の確率で「ヒットマーチ(13)」へ移行するヒット割り込みを予約する
                 const rand = Math.random();
-                if (rand < 0.33) {
-                    interruptionType = 0; 
-                } else if (rand < 0.66) {
-                    interruptionType = 2; 
+                if (rand < 0.25) {
+                    interruptionType = 2; // hit march 割り込み
                 } else {
-                    interruptionType = 3; 
+                    interruptionType = 0; // 割り込みなし（最後まで完走）
                 }
 
                 hasTriggeredInterruption = false;
@@ -735,12 +747,11 @@
 
                 if (interruptionType !== 0) {
                     const minOffset = duration * 0.2;
-                    const maxOffset = duration * 0.9;
+                    const maxOffset = duration * 0.8;
                     interruptionTriggerTime = minOffset + Math.random() * (maxOffset - minOffset);
-                    console.log(`[割り込み予約] 曲名: ${currentTrack.title}, パターン: ${interruptionType}, 発動秒数: ${interruptionTriggerTime.toFixed(1)}秒`);
+                    console.log(`[割り込み予約] 曲名: ${currentTrack.title}, 発動秒数: ${interruptionTriggerTime.toFixed(1)}秒`);
                 } else {
                     interruptionTriggerTime = null;
-                    console.log(`[割り込み予約] パターン1: 割り込みなし（最後まで再生）`);
                 }
             } catch (e) {
                 console.error("Error in scheduleInterruption:", e);
@@ -759,20 +770,15 @@
                 interruptionType = 0; 
 
                 if (targetType === 2) {
-                    console.log("【割り込み発動】パターン2 -> 特定の曲「hit march(13)」へ切り替えます。");
+                    console.log("【割り込み発動】ヒット発生想定 -> 「ヒットマーチ(13)」へ切り替えます。");
                     playTrackDirectly(13);
-                } else if (targetType === 3) {
-                    console.log("【割り込み発動】パターン3 -> 特定の曲「hit march2(14)」へ切り替えます。");
-                    playTrackDirectly(14);
                 }
             } catch (e) {
                 console.error("Error in triggerInterruption:", e);
             }
         }
 
-        // 不要な処理を安全にスキップ
         async function loadLyrics(trackId, lrcPath) {
-            // 現在の構成では歌詞表示UIを廃止したため、裏側でのパース処理のみ行います
             return; 
         }
 
@@ -807,7 +813,7 @@
         };
 
         function determineNextTrackId() {
-            // hit march2 の次は必ず睡蓮花
+            // hit march2 (id: 14) の次は必ず睡蓮花 (id: 11) へ移行
             if (currentTrack && currentTrack.id === 14) return 11;
 
             // ランナーが2塁または3塁にいる場合はチャンス場面
@@ -819,7 +825,7 @@
                 return chanceThemes[Math.floor(Math.random() * chanceThemes.length)];
             }
 
-            // それ以外は通常のランダム選択
+            // それ以外は通常のランダム選択 (ヒットマーチ1&2は通常流れない)
             return getRandomInterruptibleTrackId();
         }
 
