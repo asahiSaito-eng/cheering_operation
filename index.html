@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jmusic</title>
+    <title>Jmusic - 常総アルプススタンド</title>
     
     <meta name="theme-color" content="#000000">
     <link class="apple-touch-icon" href="img/iconcheer.png">
@@ -13,69 +13,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+        /* スマホ・PCともに全体のスクロールを禁止し、アプリ風に1画面に収める */
         body { background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; overflow: hidden; height: 100vh; }
+
         .glass { background: rgba(255, 255, 255, 0.06); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .player-view { transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
         
-        .seek-container { position: relative; height: 28px; display: flex; align-items: center; cursor: pointer; }
-        .seek-track-bg { position: absolute; left: 0; right: 0; height: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 4px; top: 50%; transform: translateY(-50%); pointer-events: none; overflow: hidden; transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-        .seek-progress { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: #fff; border-radius: 4px; pointer-events: none; }
-        input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 100%; position: absolute; z-index: 10; margin: 0; cursor: pointer; }
-        input[type="range"]:focus { outline: none; }
-        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 100%; background: transparent; border: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; height: 28px; width: 28px; border-radius: 50%; background: transparent; cursor: pointer; }
-
-        #loop-visual-bar { position: absolute; height: 4px; background: rgba(255, 45, 85, 0.35); border-radius: 3px; z-index: 5; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0; transition: opacity 0.3s ease, transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-        .loop-marker { position: absolute; width: 2px; height: 12px; background: #ff2d55; border-radius: 1px; z-index: 6; top: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; transition: opacity 0.3s ease, transform 0.2s ease; box-shadow: 0 0 6px rgba(0,0,0,0.6); }
-
-        .seek-container:active .seek-track-bg, .seek-container:active #loop-visual-bar { transform: translateY(-50%) scaleY(1.5); }
-        .seek-container:active .loop-marker { transform: translate(-50%, -50%) scaleY(1.3); }
-
-        .control-btn { padding: 6px 14px; border-radius: 999px; font-size: 10px; font-weight: 800; border: 1px solid rgba(255,255,255,0.15); transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.05em; }
-        .control-btn.active { background: #fff; color: #000; border-color: #fff; }
-
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .modal-enter { opacity: 1 !important; pointer-events: auto !important; }
-        .modal-enter .modal-content { transform: scale(1) !important; }
-
-        /* Apple Music風 歌詞スタイル */
-        .lyric-line {
-            font-size: 1.75rem;
-            line-height: 1.4;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.3);
-            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            transform-origin: left center;
-            cursor: pointer;
-            padding: 10px 0;
-            filter: blur(1px);
-        }
-        .lyric-line:active {
-            opacity: 0.7;
-        }
-        .lyric-active {
-            color: rgba(255, 255, 255, 1);
-            transform: scale(1.03);
-            filter: blur(0px);
-            text-shadow: 0 8px 25px rgba(255,255,255,0.15);
-        }
-        #lyrics-view {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(50px);
-            -webkit-backdrop-filter: blur(50px);
-        }
         
         /* iOS風 セグメントコントロール */
         .ios-segment-bg { background: rgba(120, 120, 128, 0.24); border-radius: 8px; padding: 2px; display: flex; }
         .ios-segment-btn { flex: 1; text-align: center; font-size: 11px; font-weight: 600; padding: 6px 0; border-radius: 7px; transition: all 0.2s ease; color: rgba(255, 255, 255, 0.7); }
+        /* PC時はよりコンパクトに */
+        @media (min-width: 768px) { .ios-segment-btn { font-size: 10px; padding: 4px 0; border-radius: 5px; } }
+        @media (min-width: 1024px) { .ios-segment-btn { font-size: 11px; padding: 5px 0; border-radius: 6px; } }
         .ios-segment-btn.active { background: #ffffff; color: #000000; box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.1); }
 
-        /* シミュレーション用ベース表現（Apple風ミニマル・ダイヤモンド） */
-        .base-diamond { transform: rotate(45deg); width: 14px; height: 14px; border: 1.5px solid rgba(255,255,255,0.3); transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* シミュレーション用ベース表現（スマホは大きく、PCは小さく） */
+        .base-diamond { transform: rotate(45deg); width: 14px; height: 14px; border: 1.5px solid rgba(255,255,255,0.3); transition: all 0.35s ease; }
+        @media (min-width: 768px) { .base-diamond { width: 10px; height: 10px; border-width: 1px;} }
+        @media (min-width: 1024px) { .base-diamond { width: 12px; height: 12px; border-width: 1.5px; } }
         .base-active { background-color: #ff2d55; border-color: #ff2d55; box-shadow: 0 0 8px rgba(255, 45, 85, 0.6); }
+        
         .bso-circle { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.2); transition: all 0.3s ease; }
+        @media (min-width: 768px) { .bso-circle { width: 6px; height: 6px; border-width: 1px;} }
+        @media (min-width: 1024px) { .bso-circle { width: 8px; height: 8px; } }
         .b-active { background-color: #007aff; border-color: #007aff; box-shadow: 0 0 6px rgba(0, 122, 255, 0.5); }
         .s-active { background-color: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 6px rgba(255, 204, 0, 0.5); }
         .o-active { background-color: #ff3b30; border-color: #ff3b30; box-shadow: 0 0 6px rgba(255, 59, 48, 0.5); }
@@ -88,155 +50,180 @@
         .animate-fadeIn { animation: fadeIn 0.3s ease forwards; }
     </style>
 </head>
-<body class="flex flex-col">
+<body class="flex flex-col md:p-2 lg:p-4 xl:p-6 bg-black">
 
     <div id="bg-blur" class="fixed inset-0 z-[-1] opacity-30 blur-[100px] scale-150 transition-all duration-1000"></div>
 
     <!-- ⚾ AI試合シミュレーションモード画面（メインコンテンツ） -->
-    <main class="flex-grow max-w-lg mx-auto w-full flex flex-col relative overflow-hidden px-4 pt-4 pb-28">
-        <div class="absolute inset-0 bg-gradient-to-b from-[#0a1128]/40 to-black/80 pointer-events-none z-0"></div>
+    <!-- スマホ時は gap-0 で隙間をなくし、全体のスクロールをさせない -->
+    <main class="flex-grow max-w-7xl mx-auto w-full flex flex-col md:flex-row gap-0 md:gap-3 lg:gap-5 relative px-2 pt-2 pb-0 md:p-3 lg:p-5 xl:p-6 md:bg-white/[0.03] md:border md:border-white/10 md:rounded-[2rem] md:shadow-2xl md:backdrop-blur-xl h-screen md:h-[calc(100vh-1rem)] lg:h-[calc(100vh-2rem)] overflow-hidden">
         
-        <!-- Apple風洗練されたヘッダー -->
-        <header class="flex items-center justify-between py-3 shrink-0 border-b border-white/10 z-10">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 via-red-500 to-amber-500 flex items-center justify-center text-white shadow-lg">
-                    <i class="fas fa-satellite-dish text-sm"></i>
-                </div>
-                <div>
-                    <h1 class="text-md font-bold tracking-tight text-white/90">常総アルプススタンド</h1>
-                    <p class="text-[9px] font-semibold text-zinc-400 tracking-wider uppercase">JOSO Live Broadcast</p>
-                </div>
-            </div>
-            <div class="text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold tracking-widest flex items-center gap-1.5 animate-pulse">
-                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>LIVE
-            </div>
-        </header>
-
-        <!-- iOS ライブアクティビティ風スコアボード -->
-        <div class="mt-4 glass rounded-3xl p-5 shadow-2xl z-10 shrink-0 relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-[#0a1128]/40 to-black/80 pointer-events-none z-0 md:rounded-[2rem]"></div>
+        
+        <!-- ============================================== -->
+        <!-- 🔴 左ペイン（コントロールとステータス） -->
+        <!-- ============================================== -->
+        <!-- 左ペイン。スマホ時のgapを適度に広げ、PC時は前回通りコンパクトに -->
+        <div class="w-full md:w-1/2 lg:w-[45%] flex flex-col gap-2 md:gap-1.5 lg:gap-2.5 relative z-30 shrink-0 h-auto md:h-full md:justify-between pb-0 md:pb-0 md:overflow-hidden hide-scrollbar">
             
-            <div class="flex justify-between items-center mb-5 relative z-10">
-                <!-- 相手（先攻・GUEST）を左側に配置 -->
-                <div class="text-center w-24">
-                    <span class="text-[10px] font-bold text-white/40 tracking-widest uppercase">GUEST</span>
-                    <div class="font-extrabold text-lg text-white mt-0.5">対戦校</div>
-                    <div id="sim-score-opp" class="text-4xl font-light font-sans tracking-tight mt-1">0</div>
+            <!-- Apple風洗練されたヘッダー -->
+            <header class="flex items-center justify-between py-1 md:py-1 shrink-0 border-b border-white/10 z-10 px-1">
+                <div class="flex items-center gap-3 md:gap-2">
+                    <div class="w-9 h-9 md:w-7 md:h-7 lg:w-9 lg:h-9 rounded-xl lg:rounded-xl bg-gradient-to-tr from-pink-500 via-red-500 to-amber-500 flex items-center justify-center text-white shadow-lg">
+                        <i class="fas fa-satellite-dish text-base md:text-[9px] lg:text-xs"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base md:text-xs lg:text-sm font-bold tracking-tight text-white/90 leading-tight">常総アルプススタンド</h1>
+                        <p class="text-[9px] md:text-[7px] lg:text-[8px] font-semibold text-zinc-400 tracking-wider uppercase leading-tight mt-0.5">JOSO Live Broadcast</p>
+                    </div>
                 </div>
-                <!-- イニング＆VS -->
-                <div class="flex flex-col items-center">
-                    <div id="sim-inning-text" class="text-[11px] font-bold text-white bg-white/10 px-3 py-1 rounded-full tracking-wider">1回裏</div>
-                    <div class="text-[9px] font-bold text-white/20 mt-2 tracking-widest">VS</div>
+                <div class="text-[10px] md:text-[8px] lg:text-[9px] bg-red-500/10 border border-red-500/20 text-red-400 px-2 lg:px-2.5 py-0.5 rounded-full font-bold tracking-widest flex items-center gap-1.5 animate-pulse">
+                    <span class="w-1.5 h-1.5 md:w-1 md:h-1 rounded-full bg-red-500"></span>LIVE
                 </div>
-                <!-- 常総（後攻・HOME）を右側に配置 -->
-                <div class="text-center w-24">
-                    <span class="text-[10px] font-bold text-white/40 tracking-widest uppercase">HOME</span>
-                    <div class="font-extrabold text-lg text-white/80 mt-0.5">常総学院</div>
-                    <div id="sim-score-joso" class="text-4xl font-light font-sans tracking-tight mt-1">0</div>
+            </header>
+
+            <!-- iOS ライブアクティビティ風スコアボード (優先度2) -->
+            <!-- スマホ時は p-3 で大きめ、PC時は p-2 でコンパクト -->
+            <div class="mt-0.5 glass rounded-3xl md:rounded-2xl lg:rounded-3xl p-3 md:p-2 lg:p-3 shadow-2xl z-10 shrink-0 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center mb-3 md:mb-1.5 lg:mb-3 relative z-10">
+                    <!-- 相手（先攻・GUEST） -->
+                    <div class="text-center w-20 md:w-16 lg:w-20">
+                        <span class="text-[10px] md:text-[8px] lg:text-[9px] font-bold text-white/40 tracking-widest uppercase">GUEST</span>
+                        <div class="font-extrabold text-sm md:text-[10px] lg:text-xs text-white mt-0.5 truncate">対戦校</div>
+                        <!-- スコアを text-4xl で迫力あるサイズに復元 -->
+                        <div id="sim-score-opp" class="text-4xl md:text-2xl lg:text-3xl font-light font-sans tracking-tight mt-0.5">0</div>
+                    </div>
+                    <!-- イニング＆VS -->
+                    <div class="flex flex-col items-center px-1">
+                        <div id="sim-inning-text" class="text-xs md:text-[8px] lg:text-[10px] font-bold text-white bg-white/10 px-3 md:px-1.5 lg:px-2 py-1 md:py-0.5 rounded-full tracking-wider whitespace-nowrap">1回裏</div>
+                        <div class="text-[9px] md:text-[7px] lg:text-[8px] font-bold text-white/20 mt-2 md:mt-1 lg:mt-1.5 tracking-widest">VS</div>
+                    </div>
+                    <!-- 常総（後攻・HOME） -->
+                    <div class="text-center w-20 md:w-16 lg:w-20">
+                        <span class="text-[10px] md:text-[8px] lg:text-[9px] font-bold text-white/40 tracking-widest uppercase">HOME</span>
+                        <div class="font-extrabold text-sm md:text-[10px] lg:text-xs text-white/80 mt-0.5 truncate">常総学院</div>
+                        <div id="sim-score-joso" class="text-4xl md:text-2xl lg:text-3xl font-light font-sans tracking-tight mt-0.5">0</div>
+                    </div>
+                </div>
+
+                <!-- BSO & ランナー -->
+                <div class="bg-black/30 rounded-2xl md:rounded-lg lg:rounded-xl p-2.5 md:p-1.5 lg:p-2 flex justify-between items-center border border-white/5 relative z-10">
+                    <div class="space-y-2 md:space-y-1 lg:space-y-1.5 flex-1 pl-1">
+                        <div class="flex items-center gap-3 md:gap-1.5 lg:gap-2">
+                            <span class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-blue-400 w-3 lg:w-3 tracking-wider">B</span>
+                            <div class="flex gap-1.5 md:gap-1" id="sim-balls-container"></div>
+                        </div>
+                        <div class="flex items-center gap-3 md:gap-1.5 lg:gap-2">
+                            <span class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-yellow-400 w-3 lg:w-3 tracking-wider">S</span>
+                            <div class="flex gap-1.5 md:gap-1" id="sim-strikes-container"></div>
+                        </div>
+                        <div class="flex items-center gap-3 md:gap-1.5 lg:gap-2">
+                            <span class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-red-500 w-3 lg:w-3 tracking-wider">O</span>
+                            <div class="flex gap-1.5 md:gap-1" id="sim-outs-container"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- ダイヤモンドランナー表示 (スマホは w-14 h-14 と大きめ) -->
+                    <div class="relative w-14 h-14 md:w-8 md:h-8 lg:w-10 lg:h-10 mr-2 md:mr-1 flex items-center justify-center">
+                        <div id="sim-base-2" class="base-diamond absolute top-0.5 md:top-0 left-1/2 -translate-x-1/2"></div>
+                        <div id="sim-base-3" class="base-diamond absolute left-0.5 md:left-0 top-1/2 -translate-y-1/2"></div>
+                        <div id="sim-base-1" class="base-diamond absolute right-0.5 md:right-0 top-1/2 -translate-y-1/2"></div>
+                    </div>
                 </div>
             </div>
 
-            <!-- BSO & ランナー（iOS風ミニマル統合） -->
-            <div class="bg-black/30 rounded-2xl p-3 flex justify-between items-center border border-white/5 relative z-10">
-                <div class="space-y-2 flex-1">
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-blue-400 w-3 tracking-wider">B</span>
-                        <div class="flex gap-1.5" id="sim-balls-container"></div>
+            <!-- Apple Music風「現在選択中の曲 ＆ 試合シミュ設定」 (優先度1 最も大きく) -->
+            <!-- スマホ時は p-4 でかなりリッチなサイズ -->
+            <div class="glass rounded-3xl md:rounded-2xl lg:rounded-3xl p-4 md:p-2 lg:p-3 shadow-2xl z-10 shrink-0 flex flex-col gap-3 md:gap-1.5 lg:gap-2 border border-white/10 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-tr from-white/[0.01] to-transparent pointer-events-none"></div>
+                
+                <!-- 曲再生コントロール -->
+                <div class="flex items-center gap-4 md:gap-2 lg:gap-3 w-full relative z-10">
+                    <button onclick="handlePlayPause()" class="w-14 h-14 md:w-8 md:h-8 lg:w-10 lg:h-10 flex items-center justify-center bg-white text-black hover:scale-105 active:scale-95 rounded-full shadow-lg shrink-0 transition-all duration-300">
+                        <i id="sim-play-btn" class="fas fa-play text-xl md:text-xs lg:text-sm ml-0.5"></i>
+                    </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-white/40 tracking-wider flex justify-between items-center">
+                            <span>NOW PLAYING</span>
+                            <span id="sim-badge-reserved" class="text-red-400 font-extrabold text-[8px] md:text-[6px] lg:text-[7px] uppercase animate-pulse hidden">睡蓮花 RESERVED</span>
+                        </div>
+                        <div id="sim-current-track" class="text-base md:text-xs lg:text-sm font-bold truncate text-white mt-0.5 lg:mt-0.5">待機中...</div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-yellow-400 w-3 tracking-wider">S</span>
-                        <div class="flex gap-1.5" id="sim-strikes-container"></div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-red-500 w-3 tracking-wider">O</span>
-                        <div class="flex gap-1.5" id="sim-outs-container"></div>
-                    </div>
+                    <img id="sim-current-track-img" src="img/iconcheer.png" class="w-14 h-14 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl md:rounded-lg object-cover bg-white/10 shrink-0 border border-white/10 shadow-md" alt="album art" onerror="this.src='https://via.placeholder.com/100x100.png?text=JOSO';">
                 </div>
                 
-                <!-- ダイヤモンドランナー表示 -->
-                <div class="relative w-16 h-16 mr-2 flex items-center justify-center">
-                    <div id="sim-base-2" class="base-diamond absolute top-2 left-1/2 -translate-x-1/2"></div>
-                    <div id="sim-base-3" class="base-diamond absolute left-2 top-1/2 -translate-y-1/2"></div>
-                    <div id="sim-base-1" class="base-diamond absolute right-2 top-1/2 -translate-y-1/2"></div>
+                <!-- iOS風 インラインシミュレーション設定 -->
+                <div class="border-t border-white/5 pt-3 md:pt-1.5 lg:pt-2 flex flex-col gap-2 md:gap-1 lg:gap-1.5 relative z-10">
+                    <!-- 自チームの強さ -->
+                    <div class="flex items-center justify-between gap-3 md:gap-2">
+                        <span class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-white/40 tracking-wider shrink-0 w-16 md:w-10 lg:w-12">POWER</span>
+                        <div class="ios-segment-bg flex-1">
+                            <button onclick="setSimStrength('weak')" id="seg-strength-weak" class="ios-segment-btn">弱い</button>
+                            <button onclick="setSimStrength('normal')" id="seg-strength-normal" class="ios-segment-btn active">普通</button>
+                            <button onclick="setSimStrength('strong')" id="seg-strength-strong" class="ios-segment-btn">強い</button>
+                        </div>
+                    </div>
+                    <!-- 打席アプローチ -->
+                    <div class="flex items-center justify-between gap-3 md:gap-2">
+                        <span class="text-[10px] md:text-[7px] lg:text-[8px] font-bold text-white/40 tracking-wider shrink-0 w-16 md:w-10 lg:w-12">APPROACH</span>
+                        <div class="ios-segment-bg flex-1">
+                            <button onclick="setSimApproach('aggressive')" id="seg-approach-aggressive" class="ios-segment-btn">積極</button>
+                            <button onclick="setSimApproach('normal')" id="seg-approach-normal" class="ios-segment-btn active">普通</button>
+                            <button onclick="setSimApproach('patient')" id="seg-approach-patient" class="ios-segment-btn">粘り</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 手動パターン入れ替え・スキップバー -->
+                <div class="flex gap-2 md:gap-1 lg:gap-1.5 w-full mt-1 md:mt-0.5 border-t border-white/5 pt-3 md:pt-1.5 lg:pt-2 relative z-10">
+                    <button onclick="playTrackDirectly(13)" class="flex-1 bg-white/10 hover:bg-white/15 text-white text-[11px] md:text-[8px] lg:text-[9px] font-bold py-2.5 md:py-1.5 lg:py-2 rounded-xl md:rounded-md lg:rounded-lg border border-white/5 active:scale-95 transition-all">ヒットマーチ</button>
+                    <button onclick="playTrackDirectly(14)" class="flex-1 bg-white/10 hover:bg-white/15 text-white text-[11px] md:text-[8px] lg:text-[9px] font-bold py-2.5 md:py-1.5 lg:py-2 rounded-xl md:rounded-md lg:rounded-lg border border-white/5 active:scale-95 transition-all">ヒットマーチ2</button>
+                    <button onclick="skipSimTrack()" class="w-12 md:w-8 lg:w-10 bg-white/10 hover:bg-white/15 text-white text-sm md:text-[9px] lg:text-[10px] font-bold py-2.5 md:py-1.5 lg:py-2 rounded-xl md:rounded-md lg:rounded-lg active:scale-95 transition-all flex items-center justify-center"><i class="fas fa-step-forward text-sm md:text-[8px] lg:text-[10px]"></i></button>
                 </div>
             </div>
-        </div>
 
-        <!-- Apple Music風「現在選択中の曲 ＆ 試合シミュ設定」一体化カード -->
-        <div class="mt-4 glass rounded-3xl p-4 shadow-2xl z-10 shrink-0 flex flex-col gap-4 border border-white/10 relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-tr from-white/[0.01] to-transparent pointer-events-none"></div>
+            <!-- コントロールバー（スマホ: 黒背景で下部固定 大きめ / PC: 通常配置かつ高さを極限まで縮小） -->
+            <div class="fixed md:static bottom-0 left-0 right-0 z-[60] md:z-10 p-4 pb-6 md:p-0 bg-black/95 md:bg-transparent border-t border-white/10 md:border-none md:mt-0">
+                <div class="flex gap-3 md:gap-1.5 lg:gap-2 w-full justify-center max-w-lg mx-auto md:max-w-none">
+                    <button id="sim-toggle-btn" onclick="toggleSimulation()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 md:py-2 lg:py-2.5 rounded-2xl md:rounded-lg lg:rounded-xl font-black text-sm md:text-[9px] lg:text-[11px] tracking-widest shadow-[0_10px_30px_rgba(37,99,235,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-1 lg:gap-1.5">
+                        <i class="fas fa-play text-sm md:text-[8px] lg:text-[10px]"></i> 1回裏を開始する
+                    </button>
+                    <button onclick="resetSimulation()" class="w-14 md:w-10 lg:w-12 h-12 md:h-auto bg-white/10 hover:bg-white/15 border border-white/5 text-white rounded-2xl md:rounded-lg lg:rounded-xl flex items-center justify-center text-base md:text-[10px] lg:text-xs shadow-lg transition-all active:scale-95">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </div>
+            </div>
             
-            <!-- 曲再生コントロール表示 -->
-            <div class="flex items-center gap-4 w-full relative z-10">
-                <button onclick="handlePlayPause()" class="w-14 h-14 flex items-center justify-center bg-white text-black hover:scale-105 active:scale-95 rounded-full shadow-lg shrink-0 transition-all duration-300">
-                    <i id="sim-play-btn" class="fas fa-play text-xl ml-0.5"></i>
-                </button>
-                <div class="flex-1 min-w-0">
-                    <div class="text-[9px] font-bold text-white/40 tracking-wider flex justify-between items-center">
-                        <span>NOW PLAYING</span>
-                        <span id="sim-badge-reserved" class="text-red-400 font-extrabold uppercase animate-pulse hidden">睡蓮花 RESERVED</span>
-                    </div>
-                    <div id="sim-current-track" class="text-base font-bold truncate text-white mt-0.5">待機中...</div>
-                </div>
-                <!-- 曲のアルバムアートアイコン（右上表示） -->
-                <img id="sim-current-track-img" src="img/iconcheer.png" class="w-12 h-12 rounded-xl object-cover bg-white/10 shrink-0 border border-white/10 shadow-md" alt="album art" onerror="this.src='https://via.placeholder.com/100x100.png?text=JOSO';">
+        </div>
+
+        <!-- ============================================== -->
+        <!-- 🟢 右ペイン（実況ログエリア） 優先度3 -->
+        <!-- ============================================== -->
+        <!-- スマホ時の mt-0 によって上のペインとの隙間を完全に消す。 rounded-t-3xl にして繋がっている感を出す -->
+        <div class="w-full md:w-1/2 lg:w-[55%] flex flex-col relative z-10 mt-0 md:mt-0 bg-black/30 md:bg-black/40 rounded-t-3xl md:rounded-2xl lg:rounded-3xl p-4 md:p-2 lg:p-3 md:border border-white/5 flex-grow overflow-hidden h-full">
+            <!-- ログヘッダー -->
+            <div class="text-[10px] md:text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5 z-10 shrink-0 mb-2 md:mb-1.5 lg:mb-2 px-1 md:px-0 mt-0">
+                <span class="w-1.5 h-1.5 md:w-1 md:h-1 rounded-full bg-green-400"></span>1球ごとの試合実況ログ (8秒間隔)
             </div>
             
-            <!-- iOS風 インラインシミュレーション設定 -->
-            <div class="border-t border-white/5 pt-3 flex flex-col gap-2.5 relative z-10">
-                <!-- 自チームの強さ -->
-                <div class="flex items-center justify-between gap-4">
-                    <span class="text-[10px] font-bold text-white/40 tracking-wider shrink-0 w-16">TEAM POWER</span>
-                    <div class="ios-segment-bg flex-1">
-                        <button onclick="setSimStrength('weak')" id="seg-strength-weak" class="ios-segment-btn">弱い</button>
-                        <button onclick="setSimStrength('normal')" id="seg-strength-normal" class="ios-segment-btn active">普通</button>
-                        <button onclick="setSimStrength('strong')" id="seg-strength-strong" class="ios-segment-btn">強い</button>
-                    </div>
-                </div>
-                <!-- 打席アプローチ -->
-                <div class="flex items-center justify-between gap-4">
-                    <span class="text-[10px] font-bold text-white/40 tracking-wider shrink-0 w-16">APPROACH</span>
-                    <div class="ios-segment-bg flex-1">
-                        <button onclick="setSimApproach('aggressive')" id="seg-approach-aggressive" class="ios-segment-btn">積極狙い</button>
-                        <button onclick="setSimApproach('normal')" id="seg-approach-normal" class="ios-segment-btn active">普通</button>
-                        <button onclick="setSimApproach('patient')" id="seg-approach-patient" class="ios-segment-btn">粘り重視</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 手動パターン入れ替え・スキップバー -->
-            <div class="flex gap-2 w-full mt-1 border-t border-white/5 pt-3 relative z-10">
-                <button onclick="playTrackDirectly(13)" class="flex-1 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold py-2.5 rounded-xl border border-white/5 active:scale-95 transition-all">ヒットマーチ</button>
-                <button onclick="playTrackDirectly(14)" class="flex-1 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold py-2.5 rounded-xl border border-white/5 active:scale-95 transition-all">ヒットマーチ2</button>
-                <button onclick="skipSimTrack()" class="w-12 bg-white/10 hover:bg-white/15 text-white text-xs font-bold py-2.5 rounded-xl active:scale-95 transition-all flex items-center justify-center"><i class="fas fa-step-forward"></i></button>
+            <!-- ログコンテナ -->
+            <!-- 上のモーダルが大きくなったので、残りのスペースをflex-growで取り、スクロールで過去に遡る -->
+            <!-- 下部固定ボタンの裏に隠れないよう pb-20 を指定 -->
+            <div id="sim-log-container" class="flex-grow space-y-2 md:space-y-1.5 lg:space-y-2 overflow-y-auto scroll-smooth flex flex-col hide-scrollbar z-10 px-1 md:px-0 pb-20 md:pb-1 lg:pb-2 h-full">
+                <!-- ログがここに追加されます -->
             </div>
         </div>
 
-        <!-- 実況ログエリア -->
-        <div class="mt-4 mb-1.5 text-[9px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5 z-10 shrink-0">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>1球ごとの試合実況ログ (8秒間隔)
-        </div>
-        <!-- ログコンテナ -->
-        <div id="sim-log-container" class="flex-grow space-y-2 overflow-y-auto scroll-smooth flex flex-col hide-scrollbar z-10 mb-2">
-        </div>
-
-        <!-- コントロールバー -->
-        <div class="absolute bottom-4 left-4 right-4 z-20">
-            <div class="flex gap-3 w-full justify-center">
-                <button id="sim-toggle-btn" onclick="toggleSimulation()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-xs sm:text-sm tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fas fa-play"></i> 1回裏を開始する
-                </button>
-                <button onclick="resetSimulation()" class="w-14 h-12 sm:h-auto bg-white/10 hover:bg-white/15 border border-white/5 text-white rounded-2xl flex items-center justify-center text-md shadow-lg transition-all active:scale-95">
-                    <i class="fas fa-undo"></i>
-                </button>
-            </div>
-        </div>
     </main>
 
     <audio id="audio-element" playsinline preload="auto"></audio>
 
     <script>
-        // 22曲のトラックデータ
+        // ==========================================
+        // トラックデータ
+        // ==========================================
         const tracks = [
             { id: 1, title: "校歌", artist: "常総学院高等学校応援団", img: "img/iconcheer.png", color: "#4a1c1c", src: "songs/1.mp3", interruptible: false, lrc: "lyrics/1.lrc" },
             { id: 2, title: "応援歌", artist: "常総学院高等学校応援団", img: "img/iconcheer.png", color: "#4a1c1c", src: "songs/2.mp3", interruptible: false, lrc: "lyrics/2.lrc" },
@@ -269,7 +256,7 @@
         let simTimer = null;
         let simState = { 
             inning: 1, 
-            isTop: false, // 後攻（HOME・常総の攻撃は裏）から開始
+            isTop: false,
             balls: 0, 
             strikes: 0, 
             outs: 0, 
@@ -281,7 +268,6 @@
 
         let simSettings = { strength: 'normal', approach: 'normal' };
 
-        // iOS風セグメントコントロール用設定関数
         function setSimStrength(val) {
             try {
                 simSettings.strength = val;
@@ -323,9 +309,7 @@
                     audio.pause();
                     updatePlayButtonIcons();
                 }
-            } catch (e) {
-                console.error("Error in resetSimulation:", e);
-            }
+            } catch (e) { console.error("Error in resetSimulation:", e); }
         }
         
         // ==========================================
@@ -338,26 +322,9 @@
         let loopFinishTime = null;
         const audio = document.getElementById('audio-element');
 
-        let currentLyrics = [];
-        let currentLyricIndex = -1;
-
-        // 割り込みパターン用変数
-        let interruptionType = 0; // 0:なし, 2:hit march (ヒットマーチ2は得点時のみなので除外)
+        let interruptionType = 0; 
         let interruptionTriggerTime = null; 
         let hasTriggeredInterruption = false; 
-
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.remove('pointer-events-none');
-            modal.classList.add('modal-enter');
-        }
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.remove('modal-enter');
-            setTimeout(() => { modal.classList.add('pointer-events-none'); }, 300);
-        }
 
         // ==========================================
         // ⚾ シミュレーション進行処理
@@ -366,30 +333,26 @@
         function toggleSimulation() {
             try {
                 if (simActive) {
-                    // 稼働中 -> 手動一時停止
                     simActive = false;
                     clearInterval(simTimer);
                     addSimLog(`【中断】試合のシミュレーションを一時停止しました。`);
                 } else {
-                    // 停止中 -> 再開または次イニング開始
                     simActive = true;
                     
                     if (simState.isWaitingForNextInning) {
                         simState.isWaitingForNextInning = false;
                         
-                        // イニング開始時の特殊曲再生（常総学院の攻撃は裏）
                         if (!simState.isTop) {
                             if (simState.inning === 1 || simState.inning === 7) {
-                                playTrackDirectly(1); // 1回裏、7回裏の開始は必ず校歌
+                                playTrackDirectly(1); 
                             } else if (simState.inning === 2) {
-                                playTrackDirectly(2); // 2回裏の開始は必ず応援歌
+                                playTrackDirectly(2); 
                             } else if (audio.paused) {
                                 playTrackDirectly(getRandomInterruptibleTrackId());
                             }
                         }
                         
                         if(simState.inning === 1 && !simState.isTop && simState.scoreJoso === 0 && simState.scoreOpp === 0) {
-                            // 1回裏開始前に、1回表(相手の攻撃)を高速シミュレートしてスキップ
                             const initialOppRuns = Math.random() < 0.15 ? 1 : 0; 
                             if (initialOppRuns > 0) {
                                 simState.scoreOpp += initialOppRuns;
@@ -399,7 +362,7 @@
                             }
                             addSimLog("【プレイボール】常総学院の後攻で試合開始です！");
                             addSimLog(`【1回裏】常総学院の攻撃開始！`);
-                            updateSimUI(); // スコアを即時反映
+                            updateSimUI(); 
                         } else {
                             addSimLog(`【${simState.inning}回裏】常総学院の攻撃開始！`);
                         }
@@ -410,9 +373,7 @@
                     simTimer = setInterval(processPitch, 8000); 
                 }
                 updateSimToggleButton();
-            } catch (e) {
-                console.error("Error in toggleSimulation:", e);
-            }
+            } catch (e) { console.error("Error in toggleSimulation:", e); }
         }
 
         function updateSimToggleButton() {
@@ -420,25 +381,24 @@
                 const btn = document.getElementById('sim-toggle-btn');
                 if (!btn) return;
                 
+                const baseClasses = "flex-1 py-4 md:py-2 lg:py-2.5 rounded-2xl md:rounded-lg lg:rounded-xl font-black text-sm md:text-[9px] lg:text-[11px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 md:gap-1 lg:gap-1.5 text-white";
+                
                 if (simState.isWaitingForNextInning) {
                     let text = `${simState.inning}回裏を開始する`;
-                    btn.innerHTML = `<i class="fas fa-play"></i> ${text}`;
-                    btn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black text-xs sm:text-sm tracking-widest shadow-[0_10px_30px_rgba(37,99,235,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2";
+                    btn.innerHTML = `<i class="fas fa-play text-sm md:text-[8px] lg:text-[10px]"></i> ${text}`;
+                    btn.className = `${baseClasses} bg-blue-600 hover:bg-blue-500 shadow-[0_10px_30px_rgba(37,99,235,0.4)]`;
                 } else if (simActive) {
-                    btn.innerHTML = `<i class="fas fa-pause"></i> シミュレーション停止`;
-                    btn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl font-black text-xs sm:text-sm tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2";
+                    btn.innerHTML = `<i class="fas fa-pause text-sm md:text-[8px] lg:text-[10px]"></i> シミュレーション停止`;
+                    btn.className = `${baseClasses} bg-red-600 hover:bg-red-500`;
                 } else {
-                    btn.innerHTML = `<i class="fas fa-play"></i> シミュレーション再開`;
-                    btn.className = "flex-1 bg-green-600 hover:bg-green-500 text-white py-4 rounded-2xl font-black text-xs sm:text-sm tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2";
+                    btn.innerHTML = `<i class="fas fa-play text-sm md:text-[8px] lg:text-[10px]"></i> シミュレーション再開`;
+                    btn.className = `${baseClasses} bg-green-600 hover:bg-green-500`;
                 }
-            } catch (e) {
-                console.error("Error in updateSimToggleButton:", e);
-            }
+            } catch (e) { console.error("Error in updateSimToggleButton:", e); }
         }
 
         function processPitch() {
             try {
-                // 設定に基づく確率の調整
                 let probBall = 0.35, probStrike = 0.35, probFoul = 0.10, probOut = 0.13, probHit = 0.05, probDouble = 0.015, probHomeRun = 0.005;
 
                 if (simSettings.approach === 'aggressive') {
@@ -449,7 +409,7 @@
                     probFoul *= 2.0; probOut *= 0.7; probHit *= 0.7;
                 }
 
-                if (!simState.isTop) { // 常総学院（裏）の攻撃中
+                if (!simState.isTop) {
                     let hitMultiplier = 1.0;
                     if (simSettings.strength === 'weak') hitMultiplier = 0.5;
                     if (simSettings.strength === 'strong') hitMultiplier = 1.6;
@@ -462,7 +422,6 @@
                     if (probOut < 0.01) probOut = 0.01;
                 }
 
-                // 確率の正規化
                 const total = probBall + probStrike + probFoul + probOut + probHit + probDouble + probHomeRun;
                 probBall /= total; probStrike /= total; probFoul /= total; probOut /= total; probHit /= total; probDouble /= total; probHomeRun /= total;
                 
@@ -516,21 +475,16 @@
 
                 addSimLog(pitchLog);
                 
-                // 自チーム（後攻・裏）の攻撃でヒット/得点があった場合、自動で曲を流す
                 if (!simState.isTop) {
                     if (runsScoredThisPitch > 0) {
-                        // 得点した時のみヒットマーチ2を流す
                         if (!currentTrack || currentTrack.interruptible || currentTrack.id === 13) playTrackDirectly(14); 
                     } else if (isHit || isHomerun) {
-                        // ヒットのみ（得点なし）の時は通常のヒットマーチ
                         if (!currentTrack || currentTrack.interruptible) playTrackDirectly(13); 
                     }
                 }
                 
                 updateSimUI();
-            } catch (e) {
-                console.error("Error in processPitch:", e);
-            }
+            } catch (e) { console.error("Error in processPitch:", e); }
         }
 
         function advanceRunners(bases, isWalk = false) {
@@ -571,16 +525,15 @@
             try {
                 addSimLog(`【${simState.inning}回裏終了】常総学院の攻撃終了。 (対戦校 ${simState.scoreOpp} - ${simState.scoreJoso} 常総)`);
 
-                // 敵の先攻攻撃（次の回の表）を瞬時にシミュレーションしてスキップ
                 const nextInning = simState.inning + 1;
                 const randOppRuns = Math.random();
                 let oppRuns = 0;
                 if (randOppRuns < 0.72) {
-                    oppRuns = 0; // 72%で無失点
+                    oppRuns = 0; 
                 } else if (randOppRuns < 0.92) {
-                    oppRuns = 1; // 20%で1失点
+                    oppRuns = 1; 
                 } else {
-                    oppRuns = Math.floor(Math.random() * 2) + 2; // 8%で2〜3失点
+                    oppRuns = Math.floor(Math.random() * 2) + 2; 
                 }
 
                 if (oppRuns > 0) {
@@ -590,9 +543,8 @@
                     addSimLog(`【${nextInning}回表スキップ】相手校の攻撃は三者凡退！チェンジ。`);
                 }
 
-                // 次の回（裏・常総の攻撃）の待機状態へ進める
                 simState.inning = nextInning;
-                simState.isTop = false; // 常に応援対象である裏にセット
+                simState.isTop = false; 
                 
                 simState.balls = 0; simState.strikes = 0; simState.outs = 0;
                 simState.runners = [false, false, false];
@@ -601,16 +553,13 @@
                 simActive = false;
                 simState.isWaitingForNextInning = true;
                 
-                // 曲強制停止 (校歌1、応援歌2 以外)
                 if (currentTrack && currentTrack.id !== 1 && currentTrack.id !== 2) {
                     audio.pause();
                     updatePlayButtonIcons();
                 }
                 
                 updateSimToggleButton();
-            } catch (e) {
-                console.error("Error in handleInningEnd:", e);
-            }
+            } catch (e) { console.error("Error in handleInningEnd:", e); }
         }
 
         function updateSimUI() {
@@ -638,30 +587,25 @@
                     for(let i=0; i<3; i++) oCont.innerHTML += `<div class="bso-circle ${i < simState.outs ? 'o-active' : ''}"></div>`;
                 }
 
-                const b1 = document.getElementById('sim-base-1'); if (b1) b1.className = `base-diamond absolute top-1/2 right-2 -translate-y-1/2 ${simState.runners[0] ? 'base-active' : 'bg-white/20 border-white/20'}`;
-                const b2 = document.getElementById('sim-base-2'); if (b2) b2.className = `base-diamond absolute top-2 left-1/2 -translate-x-1/2 ${simState.runners[1] ? 'base-active' : 'bg-white/20 border-white/20'}`;
-                const b3 = document.getElementById('sim-base-3'); if (b3) b3.className = `base-diamond absolute top-1/2 left-2 -translate-y-1/2 ${simState.runners[2] ? 'base-active' : 'bg-white/20 border-white/20'}`;
-            } catch (e) {
-                console.error("Error in updateSimUI:", e);
-            }
+                const baseClasses = "base-diamond absolute top-1/2 -translate-y-1/2";
+                const b1 = document.getElementById('sim-base-1'); if (b1) b1.className = `${baseClasses} right-0.5 md:right-0 lg:right-1 ${simState.runners[0] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+                const b2 = document.getElementById('sim-base-2'); if (b2) b2.className = `base-diamond absolute top-0.5 md:top-0 lg:top-1 left-1/2 -translate-x-1/2 ${simState.runners[1] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+                const b3 = document.getElementById('sim-base-3'); if (b3) b3.className = `${baseClasses} left-0.5 md:left-0 lg:left-1 ${simState.runners[2] ? 'base-active' : 'bg-white/20 border-white/20'}`;
+            } catch (e) { console.error("Error in updateSimUI:", e); }
         }
 
-        // ログ出力を安全に行う
         function addSimLog(text) {
             try {
                 const container = document.getElementById('sim-log-container');
                 if (!container) return;
                 
                 const logDiv = document.createElement('div');
-                logDiv.className = "bg-white/10 rounded-lg p-3 text-sm font-semibold text-white/90 border border-white/5 animate-fadeIn";
+                logDiv.className = "bg-white/10 rounded-xl p-3 md:p-2 lg:p-3 text-xs md:text-[9px] lg:text-xs font-semibold text-white/90 border border-white/5 animate-fadeIn shadow-sm";
                 logDiv.innerText = text;
                 
-                // 新しいログを上に追加する
                 container.prepend(logDiv);
                 container.scrollTop = 0;
-            } catch (e) {
-                console.error("Error in addSimLog:", e);
-            }
+            } catch (e) { console.error("Error in addSimLog:", e); }
         }
 
         // ==========================================
@@ -686,10 +630,7 @@
                     updatePlayButtonIcons();
                 }
                 updateMediaSession();
-                loadLyrics(track.id, track.lrc).catch(e => console.warn(e));
-            } catch (e) {
-                console.error("Error in playTrackDirectly:", e);
-            }
+            } catch (e) { console.error("Error in playTrackDirectly:", e); }
         }
 
         function updatePlayerUIElements(track) {
@@ -704,9 +645,7 @@
                 if (bgBlur) bgBlur.style.backgroundColor = track.color;
                 
                 updateReservedBadge();
-            } catch (e) {
-                console.error("Error in updatePlayerUIElements:", e);
-            }
+            } catch (e) { console.error("Error in updatePlayerUIElements:", e); }
         }
 
         function updateReservedBadge() {
@@ -717,28 +656,24 @@
                 } else {
                     if (simReservedBadge) simReservedBadge.classList.add('hidden');
                 }
-            } catch (e) {
-                console.error("Error in updateReservedBadge:", e);
-            }
+            } catch (e) { console.error("Error in updateReservedBadge:", e); }
         }
 
         function scheduleInterruption() {
             try {
                 if (!currentTrack) return;
                 
-                // 校歌、応援歌、ヒットマーチ1&2などは自動割り込み対象外
                 if (!currentTrack.interruptible || currentTrack.id === 1 || currentTrack.id === 2 || currentTrack.id === 13 || currentTrack.id === 14) {
                     interruptionType = 0;
                     interruptionTriggerTime = null;
                     return;
                 }
 
-                // 25%の確率で「ヒットマーチ(13)」へ移行するヒット割り込みを予約する
                 const rand = Math.random();
                 if (rand < 0.25) {
-                    interruptionType = 2; // hit march 割り込み
+                    interruptionType = 2; 
                 } else {
-                    interruptionType = 0; // 割り込みなし（最後まで完走）
+                    interruptionType = 0; 
                 }
 
                 hasTriggeredInterruption = false;
@@ -749,13 +684,10 @@
                     const minOffset = duration * 0.2;
                     const maxOffset = duration * 0.8;
                     interruptionTriggerTime = minOffset + Math.random() * (maxOffset - minOffset);
-                    console.log(`[割り込み予約] 曲名: ${currentTrack.title}, 発動秒数: ${interruptionTriggerTime.toFixed(1)}秒`);
                 } else {
                     interruptionTriggerTime = null;
                 }
-            } catch (e) {
-                console.error("Error in scheduleInterruption:", e);
-            }
+            } catch (e) { console.error("Error in scheduleInterruption:", e); }
         }
 
         audio.onloadedmetadata = () => { 
@@ -770,21 +702,11 @@
                 interruptionType = 0; 
 
                 if (targetType === 2) {
-                    console.log("【割り込み発動】ヒット発生想定 -> 「ヒットマーチ(13)」へ切り替えます。");
                     playTrackDirectly(13);
                 }
-            } catch (e) {
-                console.error("Error in triggerInterruption:", e);
-            }
+            } catch (e) { console.error("Error in triggerInterruption:", e); }
         }
 
-        async function loadLyrics(trackId, lrcPath) {
-            return; 
-        }
-
-        function setLoopStart() { loopStartTime = audio.currentTime; isLooping = true; }
-        function setLoopFinish() { if (loopStartTime === null) loopStartTime = 0; loopFinishTime = audio.currentTime; isLooping = true; if (loopFinishTime < loopStartTime) [loopStartTime, loopFinishTime] = [loopFinishTime, loopStartTime]; }
-        function toggleLoopMode() { if (isLooping) resetLoopState(); else isLooping = true; }
         function resetLoopState() { isLooping = false; loopStartTime = null; loopFinishTime = null; }
 
         audio.ontimeupdate = () => {
@@ -796,9 +718,7 @@
                 }
 
                 if (isLooping) { if (loopStartTime !== null && loopFinishTime !== null) { if (audio.currentTime >= loopFinishTime) audio.currentTime = loopStartTime; } else { if (audio.currentTime >= audio.duration - 0.2) { audio.currentTime = 0; audio.play(); } } }
-            } catch (e) {
-                // Ignore silent errors
-            }
+            } catch (e) { }
         };
 
         audio.onended = () => { 
@@ -806,26 +726,20 @@
                 if (isLooping) { if (loopStartTime === null || loopFinishTime === null) { audio.currentTime = 0; audio.play(); } return; }
 
                 const nextId = determineNextTrackId();
-                playTrackDirectly(nextId, false); // 自動再生せず待機状態にする
-            } catch (e) {
-                console.error("Error onended:", e);
-            }
+                playTrackDirectly(nextId, false); 
+            } catch (e) { console.error("Error onended:", e); }
         };
 
         function determineNextTrackId() {
-            // hit march2 (id: 14) の次は必ず睡蓮花 (id: 11) へ移行
             if (currentTrack && currentTrack.id === 14) return 11;
 
-            // ランナーが2塁または3塁にいる場合はチャンス場面
             const isChance = simState.runners[1] || simState.runners[2];
             
-            // チャンスの場面では50%の確率でチャンステーマを選択
             if (isChance && Math.random() < 0.5) {
-                const chanceThemes = [10, 15, 17, 19]; // チャンス常総, 神風, もののふ, グラディエーター
+                const chanceThemes = [10, 15, 17, 19]; 
                 return chanceThemes[Math.floor(Math.random() * chanceThemes.length)];
             }
 
-            // それ以外は通常のランダム選択 (ヒットマーチ1&2は通常流れない)
             return getRandomInterruptibleTrackId();
         }
 
@@ -840,9 +754,7 @@
             try {
                 const nextId = determineNextTrackId();
                 playTrackDirectly(nextId, true);
-            } catch (e) {
-                console.error("Error in skipSimTrack:", e);
-            }
+            } catch (e) { console.error("Error in skipSimTrack:", e); }
         }
 
         function handlePlayPause() { 
@@ -858,9 +770,7 @@
                     audio.pause();
                     updatePlayButtonIcons();
                 }
-            } catch (e) {
-                console.error("Error in handlePlayPause:", e);
-            }
+            } catch (e) { console.error("Error in handlePlayPause:", e); }
         }
 
         function updatePlayButtonIcons() {
@@ -868,17 +778,10 @@
                 const isPaused = audio.paused;
                 const simPlayBtn = document.getElementById('sim-play-btn');
                 if (simPlayBtn) {
-                    simPlayBtn.className = isPaused ? "fas fa-play text-lg" : "fas fa-pause text-lg";
+                    simPlayBtn.className = isPaused ? "fas fa-play text-xl md:text-xs lg:text-sm ml-0.5" : "fas fa-pause text-xl md:text-xs lg:text-sm";
                 }
-            } catch (e) {
-                console.error("Error in updatePlayButtonIcons:", e);
-            }
+            } catch (e) { console.error("Error in updatePlayButtonIcons:", e); }
         }
-
-        function forcePrevTrack() { playTrackDirectly(getRandomInterruptibleTrackId(), true); }
-        function forceNextTrack() { playTrackDirectly(getRandomInterruptibleTrackId(), true); }
-
-        function formatTime(s) { if (isNaN(s)) return "0:00"; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' + sec : sec}`; }
 
         function updatePositionState() { 
             try {
@@ -910,29 +813,22 @@
                         ] 
                     }); 
 
-                    // ハンドラー設定を安全に処理
                     const safeSetHandler = (action, fn) => {
                         try { navigator.mediaSession.setActionHandler(action, fn); } catch (err) {}
                     };
 
                     safeSetHandler('play', () => { audio.play().catch(e => console.warn(e)); updatePositionState(); updatePlayButtonIcons(); }); 
                     safeSetHandler('pause', () => { audio.pause(); updatePositionState(); updatePlayButtonIcons(); }); 
-                    safeSetHandler('previoustrack', () => { forcePrevTrack(); }); 
-                    safeSetHandler('nexttrack', () => { forceNextTrack(); }); 
-                    safeSetHandler('seekto', (details) => { if (details.fastSeek && 'fastSeek' in audio) { audio.fastSeek(details.seekTime); } else { audio.currentTime = details.seekTime; } updatePositionState(); }); 
-
-                } catch (e) {
-                    console.warn("MediaSession blocked by policy");
-                }
+                    safeSetHandler('previoustrack', () => { playTrackDirectly(getRandomInterruptibleTrackId(), true); }); 
+                    safeSetHandler('nexttrack', () => { playTrackDirectly(getRandomInterruptibleTrackId(), true); }); 
+                } catch (e) { console.warn("MediaSession blocked by policy"); }
             } 
         }
 
         // 初期ロード時にデフォルト曲をセット（待機状態）
-        try {
-            playTrackDirectly(1, false);
-        } catch (e) {
-            console.error("Initial load error:", e);
-        }
+        window.addEventListener('DOMContentLoaded', () => {
+            try { playTrackDirectly(1, false); } catch (e) { console.error("Initial load error:", e); }
+        });
     </script>
 </body>
 </html>
